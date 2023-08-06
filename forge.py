@@ -8,7 +8,7 @@ import re
 import ninja
 import colors
 import tables
-from peripherals import parse_cube_file
+from peripherals import parse_cube_file, Clk
 
 parser = argparse.ArgumentParser(
     prog="forge",
@@ -50,6 +50,15 @@ parser.add_argument(
     action="store",
     default=".",
     help="Location of project source files, defaults to `.`",
+)
+
+parser.add_argument(
+    "--no-clk",
+    dest="no_clk",
+    action="store_const",
+    const=True,
+    default=False,
+    help="disables inclusion of the CLK peripheral by default",
 )
 
 
@@ -257,6 +266,8 @@ if __name__ == "__main__":
             exit(1)
         with open(args.cube_file, "r") as cube_file:
             [mcu, deps] = parse_cube_file(cube_file)
+            if not args.no_clk:
+                deps.add(Clk())
             if mcu is None:
                 raise ForgeError("No MCU model found in cube file")
             dep_paths = []
