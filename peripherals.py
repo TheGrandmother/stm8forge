@@ -93,6 +93,7 @@ class Gpio(Peripheral):
 # stm8s_wwdg.c
 
 cube_peripherals = {
+    "ADC": Adc(1),
     "ADC1": Adc(1),
     "ADC2": Adc(2),
     "AWU": Awu(),
