@@ -54,7 +54,7 @@ class Uart(Peripheral):
 class Tim(Peripheral):
     def __init__(self, n):
         self.n = n
-        self.sources = ["stm8s_tim{n}.c"]
+        self.sources = [f"stm8s_tim{n}.c"]
 
 
 class Flash(Peripheral):
