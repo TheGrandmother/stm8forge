@@ -1,7 +1,7 @@
 # stm8forge
 
 So this is a pretty cringe project with a cringe name by someone who does not know anything about embedded development and is pretty shit at software development.
-But it may against all odds help someone get started with the STM8 development on a gnu/POSIX system for people who don't want to write everything by hand or entertain the notion of using an eclipse based IDE.
+But it may against all odds help someone get started with the STM8 development on a POSIX system for people who don't want to write everything by hand or entertain the notion of using an eclipse based IDE.
 
 I have no understanding of any of this and it is all just things that I managed to get working somehow.
 
