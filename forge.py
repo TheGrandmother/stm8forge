@@ -1,10 +1,11 @@
 #!/bin/python3
+
 import argparse
 import os
+import sys
 import stat
 import shutil
 import re
-
 import ninja
 import colors
 import tables
@@ -188,11 +189,16 @@ def create_buildfile(model, peripheral_deps=["./stm8s_it.c"]):
         w.rule("rel", "sdcc $cflags $includes -o $outdir/rel/ -c $in")
         w.rule("main", "sdcc $cflags $includes -o $outdir/ $in")
 
-        flash_cmd = "stm8flash -c stlinkv2 -p $flash_model -w $in"
+        flash_cmd = (
+            "stm8flash -c stlinkv2 -p $flash_model -w $in"
+            + " && touch .flash_dummy"
+        )
         if args.debug:
             flash_cmd = 'echo "Can\'t flash when built with --debug" && exit 1'
 
         w.rule("write_to_flash", flash_cmd)
+
+        w.rule("rebuild", " ".join(sys.argv))
 
         w.newline()
         w.build(
@@ -201,14 +207,24 @@ def create_buildfile(model, peripheral_deps=["./stm8s_it.c"]):
             ["main.c", *[gen_rel_target(dep) for dep in sources]],
         )
         w.build(
-            "flash",
+            ".flash_dummy",
             "write_to_flash",
             [main_output],
         )
         w.build(
+            "flash",
+            "phony",
+            [ninja_file, main_output, ".flash_dummy"],
+        )
+        w.build(
             "build",
             "phony",
-            [main_output],
+            [ninja_file, main_output],
+        )
+        w.build(
+            "./build.ninja",
+            "rebuild",
+            [sys.argv[0]],
         )
 
         w.newline()
