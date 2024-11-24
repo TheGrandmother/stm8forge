@@ -2,7 +2,6 @@
 import argparse
 import os
 import sys
-import stat
 import shutil
 import re
 
@@ -10,7 +9,9 @@ import re
 import forge.ninja as ninja
 import forge.colors as colors
 import forge.tables as tables
-from forge.peripherals import parse_cube_file, Clk
+from forge.openocd import create_openocd_file
+from forge.ninjamaker import create_buildfile
+from forge.peripherals import parse_cube_file, Clk, cube_peripherals
 
 parser = argparse.ArgumentParser(
     prog="forge",
@@ -63,6 +64,14 @@ parser.add_argument(
     help="disables inclusion of the CLK peripheral by default",
 )
 
+parser.add_argument(
+    "--includes",
+    dest="includes",
+    metavar="i",
+    default=None,
+    help="Specify dependencies, comma separated list",
+)
+
 
 args = parser.parse_args()
 
@@ -75,39 +84,6 @@ lib_to_driver = "STM8S_StdPeriph_Lib/Libraries/STM8S_StdPeriph_Driver/"
 
 class ForgeError(Exception):
     pass
-
-
-def create_openocd_file(model):
-    if shutil.which("openocd") is None:
-        colors.warning("No executable for openocd was found. Skipping")
-        return
-    conf = None
-    for c in tables.openocd_configs:
-        if model.startswith(c.upper()):
-            conf = c
-    if conf is None:
-        colors.warning(
-            "There is no suitable openocd config for {model}. Skipping"
-        )
-        return
-    command = (
-        "#!/usr/bin/env bash\n"
-        + "openocd -f /usr/share/openocd/scripts/interface/stlink-dap.cfg "
-        + f"-f /usr/share/openocd/scripts/target/{conf}.cfg "
-        + '-c "init" -c "reset halt"'
-    )
-    open("serve_openocd", "w").write(command)
-
-    st = os.stat("serve_openocd")
-    os.chmod("serve_openocd", st.st_mode | stat.S_IEXEC)
-
-    colors.success("Wrote openocd command to ./serve_openocd")
-
-
-def gen_rel_target(dep):
-    return os.path.join(
-        output_dir, "rel", dep.split("/")[-1].replace(".c", ".rel")
-    )
 
 
 def get_sources():
@@ -151,87 +127,6 @@ def get_flash_model(mcu):
         raise ForgeError(f"Can't find a neat flasher config for {mcu}")
 
     return match
-
-
-def create_buildfile(model, peripheral_deps=["./stm8s_it.c"]):
-    with open(ninja_file, "w") as f:
-        sources = get_sources() + peripheral_deps
-        w = ninja.Writer(f)
-        w.variable("device", find_compatible_mcu(model))
-        w.variable("outdir", output_dir)
-        w.variable("flash_model", get_flash_model(model))
-        w.variable(
-            "includes",
-            "-I./ "
-            + "-I"
-            + os.path.join(args.stdp_path, lib_to_driver, "inc"),
-        )
-
-        w.variable(
-            "compile_directives",
-            "--stack-auto --fverbose-asm --float-reent "
-            + "--no-peep --all-callee-saves --opt-code-size",
-        )
-
-        main_output = os.path.join(output_dir, "main.ihx")
-
-        if args.debug:
-            w.variable("debug", "--debug --out-fmt-elf")
-            main_output = os.path.join(output_dir, "main.elf")
-        else:
-            w.variable("debug", "")
-
-        w.variable(
-            "cflags",
-            "-mstm8 --std-sdcc99 -D $device $compile_directives $debug",
-        )
-
-        w.newline()
-        w.rule("rel", "sdcc $cflags $includes -o $outdir/rel/ -c $in")
-        w.rule("main", "sdcc $cflags $includes -o $outdir/ $in")
-
-        flash_cmd = (
-            "stm8flash -c stlink -p $flash_model -w $in"
-            + " && touch .flash_dummy"
-        )
-        if args.debug:
-            flash_cmd = 'echo "Can\'t flash when built with --debug" && exit 1'
-
-        w.rule("write_to_flash", flash_cmd)
-
-        w.rule("rebuild", " ".join(sys.argv))
-
-        w.newline()
-        w.build(
-            main_output,
-            "main",
-            ["main.c", *[gen_rel_target(dep) for dep in sources]],
-        )
-        w.build(
-            ".flash_dummy",
-            "write_to_flash",
-            [main_output],
-        )
-        w.build(
-            "flash",
-            "phony",
-            [ninja_file, main_output, ".flash_dummy"],
-        )
-        w.build(
-            "build",
-            "phony",
-            [ninja_file, main_output],
-        )
-        w.build(
-            "./build.ninja",
-            "rebuild",
-            [sys.argv[0]],
-        )
-
-        w.newline()
-        w.comment("deps")
-        for dep in sources:
-            w.build(gen_rel_target(dep), "rel", [dep])
 
 
 def swallow(exceptions, fn):
@@ -282,9 +177,15 @@ def forge():
             colors.error("No cube file specified")
             exit(1)
         with open(args.cube_file, "r") as cube_file:
+            colors.success(
+                f"Resolving peripherals and mcu model from {cube_file.name}"
+            )
             [mcu, deps] = parse_cube_file(cube_file)
             if not args.no_clk:
                 deps.add(Clk())
+            if args.includes is not None:
+                for dep in map(lambda x: x.upper(), args.includes.split(",")):
+                    deps.add(cube_peripherals[dep])
             if mcu is None:
                 raise ForgeError("No MCU model found in cube file")
             dep_paths = []
@@ -297,10 +198,17 @@ def forge():
                         d.sources,
                     )
                 )
-            colors.success(
-                f"Resolving peripherals and mcu model from {cube_file.name}"
+            device = find_compatible_mcu(mcu)
+            flash_model = get_flash_model(mcu)
+            colors.success(f"Compiling as {device}, flashing as {flash_model}")
+            create_buildfile(
+                device,
+                flash_model,
+                args.stdp_path,
+                args.debug,
+                get_sources(),
+                peripheral_deps=dep_paths,
             )
-            create_buildfile(mcu, peripheral_deps=dep_paths)
             colors.success(f"Build config written to ./{ninja_file}")
             if args.debug:
                 create_openocd_file(mcu)
