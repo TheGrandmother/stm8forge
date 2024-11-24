@@ -1,15 +1,8 @@
-import argparse
 import os
 import sys
-import shutil
-import re
 
 
 import forge.ninja as ninja
-import forge.colors as colors
-import forge.tables as tables
-from forge.openocd import create_openocd_file
-from forge.peripherals import parse_cube_file, Clk, cube_peripherals
 
 
 ninja_file = "build.ninja"
@@ -25,9 +18,10 @@ def gen_rel_target(dep):
 
 
 def create_buildfile(
-    device,
-    flash_model,
-    stdp_path,
+    cube_file: str,
+    device: str,
+    flash_model: str,
+    stdp_path: str,
     debug: bool,
     sources: list[str],
     peripheral_deps=["./stm8s_it.c"],
@@ -71,8 +65,7 @@ def create_buildfile(
         )
 
         flash_cmd = (
-            "stm8flash -c stlink -p $flash_model -w $in"
-            + " && touch .flash_dummy"
+            "touch .flash_dummy && stm8flash -c stlink -p $flash_model -w $in"
         )
 
         # if args.debug:
@@ -114,7 +107,7 @@ def create_buildfile(
             [ninja_file, ihx_output],
         )
         w.build(
-            "debug_build",
+            "debug",
             "phony",
             [ninja_file, elf_output],
         )
@@ -127,7 +120,7 @@ def create_buildfile(
         w.build(
             "./build.ninja",
             "rebuild",
-            [sys.argv[0]],
+            [cube_file],
         )
 
         w.newline()

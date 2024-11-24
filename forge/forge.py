@@ -199,9 +199,12 @@ def forge():
                     )
                 )
             device = find_compatible_mcu(mcu)
+            if device is None:
+                raise ForgeError(f"{mcu} is not a suported compiletarget")
             flash_model = get_flash_model(mcu)
             colors.success(f"Compiling as {device}, flashing as {flash_model}")
             create_buildfile(
+                args.cube_file,
                 device,
                 flash_model,
                 args.stdp_path,
