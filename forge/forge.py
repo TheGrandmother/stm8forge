@@ -1,12 +1,10 @@
 #!/bin/python3
 import argparse
 import os
-import sys
 import shutil
 import re
 
 
-import forge.ninja as ninja
 import forge.colors as colors
 import forge.tables as tables
 from forge.openocd import create_openocd_file
@@ -70,6 +68,14 @@ parser.add_argument(
     metavar="i",
     default=None,
     help="Specify dependencies, comma separated list",
+)
+
+parser.add_argument(
+    "--programmer",
+    dest="programmer",
+    metavar="programmer",
+    default="stlink",
+    help="What st programmer to use",
 )
 
 
@@ -162,15 +168,23 @@ def forge():
     if shutil.which("ninja") is None:
         colors.error("ninja was not found on this system")
         quit(1)
+    if shutil.which("sdcc") is None:
+        colors.error("sdcc was not found on this system")
+        quit(1)
+    use_dce = True
+    if shutil.which("stm8dce") is None:
+        colors.warning(
+            "stm8dce was not found on this system. DCE not avaliable, you shoud address this."
+        )
+        use_dce = False
     try:
         os.stat(os.path.join(args.stdp_path, lib_to_driver, "inc", "stm8s.h"))
     except FileNotFoundError:
-        colors.error(
+        colors.warning(
             "Could not find stm8s.h in "
             + f'{os.path.join(args.stdp_path, lib_to_driver, "inc")} '
             + "forge is kinda certain that --stdp_path is wrong."
         )
-        quit(1)
 
     try:
         if args.cube_file is None:
@@ -204,13 +218,14 @@ def forge():
             flash_model = get_flash_model(mcu)
             colors.success(f"Compiling as {device}, flashing as {flash_model}")
             create_buildfile(
-                args.cube_file,
                 device,
                 flash_model,
                 args.stdp_path,
                 args.debug,
+                args.programmer,
                 get_sources(),
                 peripheral_deps=dep_paths,
+                use_dce=use_dce,
             )
             colors.success(f"Build config written to ./{ninja_file}")
             if args.debug:

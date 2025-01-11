@@ -1,6 +1,4 @@
-#!/bin/python3
-
-from app.forge import faff
+from forge.forge import forge
 
 if __name__ == "__main__":
-    faff()
+    forge()

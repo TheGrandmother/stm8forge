@@ -18,6 +18,7 @@ Forge will hopefully complain if it can't find the stuff it needs.
 
 ## Features
 * Generate a ninja build file to build a project using SDCC
+* **AUTOMATES DEAD CODE ELIMINATION USING `stm8dce`**
 * Automatically resolves the used peripherals from the STM8CubeMx report file (the .txt ones) and include the appropriate files from the `STM8S_StdPeriph`library (not included)
 * Setup a build target for flashing a device using stm8flash matching the MCU used
 * Support building for debugging
@@ -55,6 +56,13 @@ $ cd sdcc
 $ sudo cp -r * /usr/local
 ```
 
+### [stm8dce](https://github.com/CTXz/STM8-DCE)
+stm8dce is used for the dead code elimination. stm8forge works without it but your artifacts will
+unironically be orders of magnitude bigger.
+```
+$ pip install stm8dce
+```
+
 ### [STM8CubeMx](https://www.st.com/en/development-tools/stm8cubemx.html)
 Whatever version is avaliable, have fun.
 
@@ -81,10 +89,11 @@ $ sudo make install
 ### stm8-gdb
 This is kinda fun if you are into debugging.
 But also a bit of a hassle and takes a while.
-```
-$ wget https://sourceforge.net/projects/stm8-binutils-gdb/files/stm8-binutils-gdb-sources-2018-03-04.tar.gz/download -O stm8-binutils-gdb-sources-2018-03-04.tar.gz
 
-$ tar -xf stm8-binutils-gdb-sources-2018-03-04.tar.gz
+```
+$ wget https://sourceforge.net/projects/stm8-binutils-gdb/files/stm8-binutils-gdb-sources-2021-07-18.tar.gz/download -O stm8-binutils-gdb-sources-2021-07-18.tar.gz
+
+$ tar -xf stm8-binutils-gdb-sources-2021-07-18.tar.gz
 $ cd stm8-binutils-gdb-sources
 $ ./patch_binutils.sh
 $ ./configure_binutils.sh

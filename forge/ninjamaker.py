@@ -1,33 +1,51 @@
 import os
 import sys
+import subprocess
 
 
 import forge.ninja as ninja
+import forge.colors as colors
 
 
 ninja_file = "build.ninja"
 output_dir = "./build"
 
 lib_to_driver = "STM8S_StdPeriph_Lib/Libraries/STM8S_StdPeriph_Driver/"
+stm8_lib_path = "/usr/local/share/sdcc/lib/stm8/stm8.lib"
+
+
+def make_target(source, suffix, path=""):
+    return os.path.join(
+        output_dir, path, source.split("/")[-1].replace(".c", suffix)
+    )
 
 
 def gen_rel_target(dep):
+    return os.path.join(output_dir, dep.split("/")[-1].replace(".c", ".rel"))
+
+
+def gen_asm_target(dep):
+    return os.path.join(output_dir, dep.split("/")[-1].replace(".c", ".asm"))
+
+
+def gen_smol_asm_target(dep):
     return os.path.join(
-        output_dir, "rel", dep.split("/")[-1].replace(".c", ".rel")
+        output_dir, "smol", dep.split("/")[-1].replace(".c", ".asm")
     )
 
 
 def create_buildfile(
-    cube_file: str,
     device: str,
     flash_model: str,
     stdp_path: str,
     debug: bool,
+    programmer: str,
     sources: list[str],
     peripheral_deps=["./stm8s_it.c"],
+    use_dce=True,
 ):
     with open(ninja_file, "w") as f:
-        sources = sources + peripheral_deps
+        sources = sources + peripheral_deps + ["./main.c"]
         w = ninja.Writer(f)
         w.variable("device", device)
         w.variable("outdir", output_dir)
@@ -57,40 +75,53 @@ def create_buildfile(
         )
 
         w.newline()
-        w.rule("rel", "sdcc $cflags $includes -o $outdir/rel/ -c $in")
+        w.rule("dep", "sdcc $cflags $includes -o $outdir/ -c $in")
         w.rule("main", "sdcc $cflags $includes -o $outdir/ $in")
+        w.rule("compile_asm", "sdcc $cflags $includes -S -o $out $in")
+        w.rule("assemble", "sdasstm8 -plosg -ff -o $out $in")
         w.rule(
             "debug",
             "sdcc $cflags --debug --out-fmt-elf $includes -o $outdir/ $in",
         )
 
-        flash_cmd = (
-            "touch .flash_dummy && stm8flash -c stlink -p $flash_model -w $in"
+        if use_dce:
+            w.rule(
+                "dce",
+                f"stm8dce -o $outdir/smol {stm8_lib_path} $in && touch $outdir/.smollified",
+            )
+        else:
+            w.rule(
+                "dce",
+                f"cp $outdir/asm/* $outdir/smol/ && touch $outdir/.smollified",
+            )
+
+        w.rule(
+            "link",
+            f"sdcc $cflags --debug --out-fmt-elf $includes -o $outdir/main.elf $in",
         )
 
-        # if args.debug:
-        #     flash_cmd = 'echo "Can\'t flash when built with --debug" && exit 1'
+        w.rule(
+            "ihx",
+            f"stm8-objcopy --remove-section='.debug*' --remove-section=SSEG --remove-section=INITIALIZED --remove-section=DATA $in -O ihex $out",
+        )
+
+        flash_cmd = f"stm8flash -c {programmer} -p $flash_model -w $in && touch .flash_dummy"
 
         w.rule("write_to_flash", flash_cmd)
 
-        w.rule("rebuild", " ".join(sys.argv))
+        w.rule("_reforge", " ".join(sys.argv))
 
         w.rule("_clean", "rm -r $outdir")
+        w.rule(
+            "_dirs",
+            "mkdir -p $outdir && mkdir -p $outdir/obj && mkdir -p $outdir/smol && mkdir -p $outdir/asm",
+        )
 
         if debug:
             w.rule("_listen", "./serve_openocd")
 
         w.newline()
-        w.build(
-            ihx_output,
-            "main",
-            ["main.c", *[gen_rel_target(dep) for dep in sources]],
-        )
-        w.build(
-            elf_output,
-            "debug",
-            ["main.c", *[gen_rel_target(dep) for dep in sources]],
-        )
+        w.comment("actions")
         w.build(
             ".flash_dummy",
             "write_to_flash",
@@ -99,17 +130,17 @@ def create_buildfile(
         w.build(
             "flash",
             "phony",
-            [ninja_file, ihx_output, ".flash_dummy"],
+            ["dirs", ninja_file, ihx_output, ".flash_dummy"],
         )
         w.build(
             "build",
             "phony",
-            [ninja_file, ihx_output],
+            ["dirs", ninja_file, ihx_output],
         )
         w.build(
             "debug",
             "phony",
-            [ninja_file, elf_output],
+            ["dirs", ninja_file, elf_output],
         )
         w.build(
             "clean",
@@ -118,12 +149,60 @@ def create_buildfile(
         )
 
         w.build(
-            "./build.ninja",
-            "rebuild",
-            [cube_file],
+            "reforge",
+            "_reforge",
+            [],
+        )
+        w.build(
+            "dirs",
+            "_dirs",
+            [],
         )
 
         w.newline()
-        w.comment("deps")
+        w.comment("targets")
+
+        w.newline()
+        w.comment("asm_targets")
         for dep in sources:
-            w.build(gen_rel_target(dep), "rel", [dep])
+            w.build(make_target(dep, ".asm", "asm"), "compile_asm", [dep])
+
+        w.newline()
+        w.comment("smol_asm")
+        w.build(
+            "$outdir/.smollified",
+            "dce",
+            [make_target(dep, ".asm", "asm") for dep in sources],
+        )
+        w.newline()
+        for dep in sources:
+            w.build(
+                make_target(dep, ".asm", "smol"),
+                "phony",
+                ["$outdir/.smollified", make_target(dep, ".asm", "asm")],
+            )
+
+        w.newline()
+        w.comment("obj_targets")
+        for dep in sources:
+            w.build(
+                make_target(dep, ".rel", "obj"),
+                "assemble",
+                [make_target(dep, ".asm", "smol")],
+            )
+
+        w.newline()
+        w.comment("linkidink")
+        w.build(
+            "build/main.elf",
+            "link",
+            [make_target(dep, ".rel", "obj") for dep in sources],
+        )
+
+        w.newline()
+        w.comment("ihx")
+        w.build(
+            "build/main.ihx",
+            "ihx",
+            ["build/main.elf"],
+        )
