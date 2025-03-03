@@ -1,5 +1,4 @@
 #!/bin/python3
-import argparse
 import os
 import shutil
 import re
@@ -8,96 +7,21 @@ import re
 import forge.colors as colors
 import forge.tables as tables
 from forge.openocd import create_openocd_file
+from forge.conf import load_conf
 from forge.ninjamaker import create_buildfile
 from forge.peripherals import parse_cube_file, Clk, cube_peripherals
-
-parser = argparse.ArgumentParser(
-    prog="forge",
-    description="Generates build files and stuff for SDCC based STM8 projects",
-)
-
-parser.add_argument(
-    "--cube-file",
-    metavar="cf",
-    dest="cube_file",
-    type=str,
-    default=None,
-    action="store",
-    help="Path to STM8CubeMX .txt report file",
-)
-
-parser.add_argument(
-    "--debug",
-    metavar="d",
-    const="--debug",
-    action="store_const",
-    default="",
-    help="Build with dbg stuff",
-)
-
-parser.add_argument(
-    "--stdp",
-    dest="stdp_path",
-    metavar="stpd path",
-    action="store",
-    default=".",
-    help="Path to the STM8S_StdPeriph_Lib. defaults to `.`",
-)
-
-parser.add_argument(
-    "--src",
-    dest="src",
-    metavar="src",
-    action="store",
-    default=".",
-    help="Location of project source files, defaults to `.`",
-)
-
-parser.add_argument(
-    "--no-clk",
-    dest="no_clk",
-    action="store_const",
-    const=True,
-    default=False,
-    help="disables inclusion of the CLK peripheral by default",
-)
-
-parser.add_argument(
-    "--includes",
-    dest="includes",
-    metavar="i",
-    default=None,
-    help="Specify dependencies, comma separated list",
-)
-
-parser.add_argument(
-    "--programmer",
-    dest="programmer",
-    metavar="programmer",
-    default="stlink",
-    help="What st programmer to use",
-)
-
-
-args = parser.parse_args()
-
-
-ninja_file = "build.ninja"
-output_dir = "./build"
-
-lib_to_driver = "STM8S_StdPeriph_Lib/Libraries/STM8S_StdPeriph_Driver/"
 
 
 class ForgeError(Exception):
     pass
 
 
-def get_sources():
+def get_sources(src):
     has_main = False
     has_it_c = False
     has_conf_h = False
     sources = []
-    for file in os.listdir(args.src):
+    for file in os.listdir(src):
         if file == "stm8s_conf.h":
             has_conf_h = True
         if file.endswith(".c"):
@@ -106,13 +30,13 @@ def get_sources():
                 continue
             if file == "stm8s_it.c":
                 has_it_c = True
-            sources.append(os.path.join(args.src, file))
+            sources.append(os.path.join(src, file))
     if not has_main:
-        raise ForgeError(f"No main.c file was found in {args.src}")
+        raise ForgeError(f"No main.c file was found in {src}")
     if not has_it_c:
-        colors.warning(f"No stm8s_it.c file was found in {args.src}")
+        colors.warning(f"No stm8s_it.c file was found in {src}")
     if not has_conf_h:
-        colors.warning(f"No stm8s_conf.h file was found in {args.src}")
+        colors.warning(f"No stm8s_conf.h file was found in {src}")
 
     return sources
 
@@ -164,51 +88,55 @@ def find_compatible_mcu(mcu):
 
 
 def forge():
-    swallow([FileNotFoundError], os.replace)(ninja_file, "_" + ninja_file)
+    config = load_conf()
+    swallow([FileNotFoundError], os.replace)(
+        config.ninja_file, "_" + config.ninja_file
+    )
     if shutil.which("ninja") is None:
         colors.error("ninja was not found on this system")
         quit(1)
     if shutil.which("sdcc") is None:
         colors.error("sdcc was not found on this system")
         quit(1)
-    use_dce = True
-    if shutil.which("stm8dce") is None:
+    use_dce = not config.no_dce
+    if shutil.which("stm8dce") is None and not config.no_dce:
         colors.warning(
             "stm8dce was not found on this system. DCE not avaliable, you shoud address this."
         )
         use_dce = False
-    try:
-        os.stat(os.path.join(args.stdp_path, lib_to_driver, "inc", "stm8s.h"))
-    except FileNotFoundError:
-        colors.warning(
-            "Could not find stm8s.h in "
-            + f'{os.path.join(args.stdp_path, lib_to_driver, "inc")} '
-            + "forge is kinda certain that --stdp_path is wrong."
-        )
+    if config.no_dce:
+        colors.warning("Dce is disabled.")
 
     try:
-        if args.cube_file is None:
+        os.stat(os.path.join(config.std_path, "inc", "stm8s.h"))
+    except FileNotFoundError:
+        colors.error(
+            "Could not find stm8s.h in "
+            + f'{os.path.join(config.std_path, "inc")} '
+            + "std_path."
+        )
+        quit(1)
+
+    try:
+        if config.cube_file is None:
             colors.error("No cube file specified")
             exit(1)
-        with open(args.cube_file, "r") as cube_file:
+        with open(config.cube_file, "r") as cube_file:
             colors.success(
                 f"Resolving peripherals and mcu model from {cube_file.name}"
             )
             [mcu, deps] = parse_cube_file(cube_file)
-            if not args.no_clk:
+            if not config.no_clk:
                 deps.add(Clk())
-            if args.includes is not None:
-                for dep in map(lambda x: x.upper(), args.includes.split(",")):
-                    deps.add(cube_peripherals[dep])
+            for dep in config.dependencies:
+                deps.add(cube_peripherals[dep])
             if mcu is None:
                 raise ForgeError("No MCU model found in cube file")
             dep_paths = []
             for d in deps:
                 dep_paths = dep_paths + list(
                     map(
-                        lambda x: os.path.join(
-                            args.stdp_path, lib_to_driver, "src", x
-                        ),
+                        lambda x: os.path.join(config.std_path, "src", x),
                         d.sources,
                     )
                 )
@@ -220,25 +148,25 @@ def forge():
             create_buildfile(
                 device,
                 flash_model,
-                args.stdp_path,
-                args.debug,
-                args.programmer,
-                get_sources(),
-                peripheral_deps=dep_paths,
+                config,
+                get_sources(config.src),
                 use_dce=use_dce,
+                peripheral_deps=dep_paths,
             )
-            colors.success(f"Build config written to ./{ninja_file}")
-            if args.debug:
+            colors.success(f"Build config written to ./{config.ninja_file}")
+            if config.debug:
                 create_openocd_file(mcu)
 
-            swallow([FileNotFoundError], shutil.rmtree)("build/")
+            swallow([FileNotFoundError], shutil.rmtree)(config.output_dir)
             quit(0)
     except ForgeError as e:
         colors.error(e)
         quit(1)
     except Exception as e:
-        swallow([FileNotFoundError], os.replace)("_" + ninja_file, ninja_file)
+        swallow([FileNotFoundError], os.replace)(
+            "_" + config.ninja_file, config.ninja_file
+        )
         colors.error("Unkown error when creating build config:")
         raise e
     finally:
-        swallow([FileNotFoundError], os.remove)("_" + ninja_file)
+        swallow([FileNotFoundError], os.remove)("_" + config.ninja_file)

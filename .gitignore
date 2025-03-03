@@ -160,3 +160,5 @@ cython_debug/
 #.idea/
 build.ninja
 serve_openocd
+forge_conf.toml
+main.c

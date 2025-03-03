@@ -91,10 +91,14 @@ class Exti(Dependency):
         self.sources = ["stm8s_exti.c"]
 
 
+class Flash(Dependency):
+    def __init__(self):
+        self.sources = ["stm8s_flash.c"]
+
+
 # These wild bois are missing
 # stm8s_awu.c
 # stm8s_clk.c
-# stm8s_flash.c
 # stm8s_itc.c
 # stm8s_iwdg.c
 # stm8s_rst.c
@@ -124,6 +128,7 @@ cube_peripherals = {
     "UART4": Uart(4),
     "I2C1": I2C(),
     "SPI1": Spi(),
+    "FLASH": Flash(),
     "EXTI": Exti(),  # This should be passed as a real dependency
 }
 

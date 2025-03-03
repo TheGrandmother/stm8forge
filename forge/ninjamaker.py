@@ -5,12 +5,12 @@ import subprocess
 
 import forge.ninja as ninja
 import forge.colors as colors
+from forge.conf import Config
 
 
 ninja_file = "build.ninja"
 output_dir = "./build"
 
-lib_to_driver = "STM8S_StdPeriph_Lib/Libraries/STM8S_StdPeriph_Driver/"
 stm8_lib_path = "/usr/local/share/sdcc/lib/stm8/stm8.lib"
 
 
@@ -37,12 +37,10 @@ def gen_smol_asm_target(dep):
 def create_buildfile(
     device: str,
     flash_model: str,
-    stdp_path: str,
-    debug: bool,
-    programmer: str,
+    config: Config,
     sources: list[str],
-    peripheral_deps=["./stm8s_it.c"],
     use_dce=True,
+    peripheral_deps=[],
 ):
     with open(ninja_file, "w") as f:
         sources = sources + peripheral_deps + ["./main.c"]
@@ -52,7 +50,7 @@ def create_buildfile(
         w.variable("flash_model", flash_model)
         w.variable(
             "includes",
-            "-I./ " + "-I" + os.path.join(stdp_path, lib_to_driver, "inc"),
+            "-I./ " + "-I" + os.path.join(config.std_path, "inc"),
         )
 
         w.variable(
@@ -63,11 +61,6 @@ def create_buildfile(
 
         ihx_output = os.path.join(output_dir, "main.ihx")
         elf_output = os.path.join(output_dir, "main.elf")
-
-        if debug:
-            w.variable("debug", "--debug --out-fmt-elf")
-        else:
-            w.variable("debug", "")
 
         w.variable(
             "cflags",
@@ -105,7 +98,7 @@ def create_buildfile(
             f"stm8-objcopy --remove-section='.debug*' --remove-section=SSEG --remove-section=INITIALIZED --remove-section=DATA $in -O ihex $out",
         )
 
-        flash_cmd = f"stm8flash -c {programmer} -p $flash_model -w $in && touch .flash_dummy"
+        flash_cmd = f"stm8flash -c {config.programmer} -p $flash_model -w $in && touch .flash_dummy"
 
         w.rule("write_to_flash", flash_cmd)
 
@@ -117,7 +110,7 @@ def create_buildfile(
             "mkdir -p $outdir && mkdir -p $outdir/obj && mkdir -p $outdir/smol && mkdir -p $outdir/asm",
         )
 
-        if debug:
+        if config.debug:
             w.rule("_listen", "./serve_openocd")
 
         w.newline()
