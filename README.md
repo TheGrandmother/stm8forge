@@ -26,14 +26,13 @@ Forge will hopefully complain if it can't find the stuff it needs.
 * Has cringy colors in the output like some fancy kind of thing
 * Pretends to be robust and do some error checking
 * Has lofty plans to add code generation
+* Can generate a CCLS config file
 
 ## To do
 * Lose interest, move on to something else and never touch this again
-* Add a way to manually specify things besides CubeMx
 * Add code generation for peripherals
 * Better cli interface
 * Dockerfile for dependencies
-* Generalize and add support for completely different MCUs
 
 ## Requirements
 These are the things that you pretty much have to have.

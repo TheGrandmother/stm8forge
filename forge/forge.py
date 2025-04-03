@@ -10,6 +10,7 @@ from forge.openocd import create_openocd_file
 from forge.conf import load_conf
 from forge.ninjamaker import create_buildfile
 from forge.peripherals import parse_cube_file, Clk, cube_peripherals
+from forge.ccls import write_ccls_file
 
 
 class ForgeError(Exception):
@@ -156,6 +157,9 @@ def forge():
             colors.success(f"Build config written to ./{config.ninja_file}")
             if config.debug:
                 create_openocd_file(mcu)
+
+            if config.make_ccls:
+                write_ccls_file(device, config)
 
             swallow([FileNotFoundError], shutil.rmtree)(config.output_dir)
             quit(0)

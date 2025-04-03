@@ -34,6 +34,12 @@ def gen_smol_asm_target(dep):
     )
 
 
+standard_flags = (
+    "--stack-auto --fverbose-asm --float-reent "
+    + "--no-peep --all-callee-saves --opt-code-size"
+)
+
+
 def create_buildfile(
     device: str,
     flash_model: str,
@@ -55,8 +61,7 @@ def create_buildfile(
 
         w.variable(
             "compile_directives",
-            "--stack-auto --fverbose-asm --float-reent "
-            + "--no-peep --all-callee-saves --opt-code-size",
+            standard_flags,
         )
 
         ihx_output = os.path.join(output_dir, "main.ihx")

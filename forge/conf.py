@@ -96,6 +96,7 @@ class Config:
     no_dce: bool = False
     no_clk: bool = False
     debug: bool = False
+    make_ccls: bool = True
 
     def __post_init__(self):
         if (
