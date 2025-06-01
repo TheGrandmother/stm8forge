@@ -103,7 +103,7 @@ def create_buildfile(
             f"stm8-objcopy --remove-section='.debug*' --remove-section=SSEG --remove-section=INITIALIZED --remove-section=DATA $in -O ihex $out",
         )
 
-        flash_cmd = f"stm8flash -c {config.programmer} -p $flash_model -w $in && touch .flash_dummy"
+        flash_cmd = f"stm8flash -c {config.programmer} -p $flash_model -w $in"
 
         w.rule("write_to_flash", flash_cmd)
 
@@ -121,14 +121,14 @@ def create_buildfile(
         w.newline()
         w.comment("actions")
         w.build(
-            ".flash_dummy",
+            "_flash",
             "write_to_flash",
             [ihx_output],
         )
         w.build(
             "flash",
             "phony",
-            ["dirs", ninja_file, ihx_output, ".flash_dummy"],
+            ["dirs", ninja_file, ihx_output, "_flash"],
         )
         w.build(
             "build",
