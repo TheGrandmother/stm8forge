@@ -61,11 +61,6 @@ class Tim(Peripheral):
         self.sources = [f"stm8s_tim{n}.c"]
 
 
-class Flash(Peripheral):
-    def __init__(self):
-        self.sources = ["stm8s_flash.c"]
-
-
 class I2C(Peripheral):
     def __init__(self):
         self.sources = ["stm8s_i2c.c"]

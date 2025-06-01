@@ -133,12 +133,14 @@ def forge():
                 deps.add(cube_peripherals[dep])
             if mcu is None:
                 raise ForgeError("No MCU model found in cube file")
-            dep_paths = []
+            dep_paths = set()
             for d in deps:
-                dep_paths = dep_paths + list(
-                    map(
-                        lambda x: os.path.join(config.std_path, "src", x),
-                        d.sources,
+                dep_paths = dep_paths.union(
+                    set(
+                        map(
+                            lambda x: os.path.join(config.std_path, "src", x),
+                            d.sources,
+                        )
                     )
                 )
             device = find_compatible_mcu(mcu)
@@ -152,7 +154,7 @@ def forge():
                 config,
                 get_sources(config.src),
                 use_dce=use_dce,
-                peripheral_deps=dep_paths,
+                peripheral_deps=list(dep_paths),
             )
             colors.success(f"Build config written to ./{config.ninja_file}")
             if config.debug:
