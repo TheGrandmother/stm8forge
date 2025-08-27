@@ -1,10 +1,8 @@
 import os
 import sys
-import subprocess
 
 
 import forge.ninja as ninja
-import forge.colors as colors
 from forge.conf import Config
 
 
@@ -109,6 +107,8 @@ def create_buildfile(
 
         w.rule("_reforge", " ".join(sys.argv))
 
+        w.rule("_make_ucsim_config", f"forge generate-ucsim-setup $in $out")
+
         w.rule("_clean", "rm -r $outdir")
         w.rule(
             "_dirs",
@@ -198,9 +198,27 @@ def create_buildfile(
         )
 
         w.newline()
+        w.comment("map file")
+        w.build(
+            "build/main.map",
+            "phony",
+            ["build/main.ihx", "dirs"],
+        )
+
+        w.newline()
         w.comment("ihx")
         w.build(
             "build/main.ihx",
             "ihx",
             ["build/main.elf"],
+        )
+
+        w.newline()
+        w.comment("uCsim configuration file")
+        w.build(
+            "ucsim_config",
+            "_make_ucsim_config",
+            [
+                "build/main.map",
+            ],
         )

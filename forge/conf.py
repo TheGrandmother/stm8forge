@@ -8,9 +8,44 @@ import os
 std_path_default = "./STM8S_StdPeriph_Lib/Libraries/STM8S_StdPeriph_Driver/"
 
 
-parser = argparse.ArgumentParser(
+main_parser = argparse.ArgumentParser(
     prog="forge",
     description="Generates build files and stuff for SDCC based STM8 projects",
+)
+
+subparsers = main_parser.add_subparsers(help="subcommand help")
+subparsers.default = "project"
+
+# parser.add_argument(
+#     "command",
+#     nargs="?",
+#     type=str,
+#     choices=("forge-project", "generate-ucsim-setup"),
+#     default="forge-project",
+#     help="What command to execute",
+# )
+
+ucsim_parser = subparsers.add_parser(
+    "generate-ucsim-setup",
+    help="Generates setupfiles for ucssim used by the build file",
+)
+
+ucsim_parser.add_argument(
+    "map",
+    type=str,
+    help="input map file",
+)
+
+ucsim_parser.add_argument(
+    "out",
+    type=str,
+    help="output file",
+)
+
+
+parser = subparsers.add_parser(
+    "project",
+    help="Forges the project in accordance with the decrees of the configuration",
 )
 
 parser.add_argument(
@@ -81,7 +116,7 @@ parser.add_argument(
     help="Disables dead code elimination",
 )
 
-args = parser.parse_args()
+args = main_parser.parse_args()
 
 
 @dataclass
@@ -119,7 +154,10 @@ def load_conf(path: str = "./forge_conf.toml"):
             std_path=data.get("std_path", args.std_path),
             dependencies=data.get(
                 "dependencies",
-                map(lambda x: x.upper(), args.dependencies.split(",")),
+                filter(
+                    lambda x: x == "",
+                    map(lambda x: x.upper(), args.dependencies.split(",")),
+                ),
             ),
             no_clk=data.get("no_clk", args.no_clk),
             no_dce=data.get("no_dce", args.no_dce),

@@ -2,15 +2,17 @@
 import os
 import shutil
 import re
+import sys
 
 
 import forge.colors as colors
 import forge.tables as tables
 from forge.openocd import create_openocd_file
-from forge.conf import load_conf
+from forge.conf import load_conf, args
 from forge.ninjamaker import create_buildfile
 from forge.peripherals import parse_cube_file, Clk, cube_peripherals
 from forge.ccls import write_ccls_file
+from forge.ucsim import write_cfg_file
 
 
 class ForgeError(Exception):
@@ -88,7 +90,7 @@ def find_compatible_mcu(mcu):
     return matching_mcu
 
 
-def forge():
+def forge_project():
     config = load_conf()
     swallow([FileNotFoundError], os.replace)(
         config.ninja_file, "_" + config.ninja_file
@@ -176,3 +178,22 @@ def forge():
         raise e
     finally:
         swallow([FileNotFoundError], os.remove)("_" + config.ninja_file)
+
+
+def forge():
+    match sys.argv[1]:
+        case "project":
+            forge_project()
+        case "generate-ucsim-setup":
+            write_usim()
+        case _:
+            colors.error(f"{args.command} is not a valid command")
+            quit(1)
+
+
+def write_usim():
+    try:
+        write_cfg_file(args.map, args.out)
+    except Exception as e:
+        colors.error(f"Failed to create uCsim config: {e}")
+        quit(1)
