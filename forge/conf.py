@@ -14,7 +14,6 @@ main_parser = argparse.ArgumentParser(
 )
 
 subparsers = main_parser.add_subparsers(help="subcommand help")
-subparsers.default = "project"
 
 # parser.add_argument(
 #     "command",

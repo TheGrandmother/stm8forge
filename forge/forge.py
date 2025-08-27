@@ -8,7 +8,7 @@ import sys
 import forge.colors as colors
 import forge.tables as tables
 from forge.openocd import create_openocd_file
-from forge.conf import load_conf, args
+from forge.conf import load_conf, args, main_parser
 from forge.ninjamaker import create_buildfile
 from forge.peripherals import parse_cube_file, Clk, cube_peripherals
 from forge.ccls import write_ccls_file
@@ -181,6 +181,10 @@ def forge_project():
 
 
 def forge():
+    if len(sys.argv) == 1:
+        print(main_parser.format_help())
+        quit(1)
+
     match sys.argv[1]:
         case "project":
             forge_project()
