@@ -1,8 +1,10 @@
 import tomllib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List
+from enum import StrEnum
 import argparse
 import os
+import sys
 
 
 std_path_default = "./STM8S_StdPeriph_Lib/Libraries/STM8S_StdPeriph_Driver/"
@@ -15,46 +17,35 @@ main_parser = argparse.ArgumentParser(
 
 subparsers = main_parser.add_subparsers(help="subcommand help")
 
-# parser.add_argument(
-#     "command",
-#     nargs="?",
-#     type=str,
-#     choices=("forge-project", "generate-ucsim-setup"),
-#     default="forge-project",
-#     help="What command to execute",
-# )
-
 ucsim_parser = subparsers.add_parser(
-    "generate-ucsim-setup",
-    help="Generates setupfiles for ucssim used by the build file",
+    "simulate",
+    help="simulates the project using μCsim",
 )
 
 ucsim_parser.add_argument(
-    "map",
-    type=str,
-    help="input map file",
+    "--generate-conf",
+    dest="generate_conf",
+    action="store_true",
+    help="Generate uccssim configuration.",
 )
 
 ucsim_parser.add_argument(
-    "out",
+    "--start",
+    dest="start",
+    action="store_true",
+    help="Start the simulation",
+)
+
+ucsim_parser.add_argument(
+    "--map",
     type=str,
-    help="output file",
+    help="input map file. pointless without --generate-conf",
 )
 
 
 parser = subparsers.add_parser(
     "project",
     help="Forges the project in accordance with the decrees of the configuration",
-)
-
-parser.add_argument(
-    "--cube-file",
-    metavar="cf",
-    dest="cube_file",
-    type=str,
-    default=None,
-    # action="store",
-    help="Path to STM8CubeMX .txt report file",
 )
 
 parser.add_argument(
@@ -67,37 +58,12 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--std",
-    dest="std_path",
-    metavar="stp path",
-    action="store",
-    help="Path to the STM8S_StdPeriph_Lib. defaults to `.`",
-)
-
-parser.add_argument(
-    "--src",
-    dest="src",
-    metavar="src",
-    action="store",
-    default=".",
-    help="Location of project source files, defaults to `.`",
-)
-
-parser.add_argument(
     "--no-clk",
     dest="no_clk",
     action="store_const",
     const=True,
     default=False,
     help="disables inclusion of the CLK peripheral by default",
-)
-
-parser.add_argument(
-    "--dependencies",
-    dest="dependencies",
-    metavar="i",
-    default="",
-    help="Specify dependencies, comma separated list",
 )
 
 parser.add_argument(
@@ -115,7 +81,26 @@ parser.add_argument(
     help="Disables dead code elimination",
 )
 
-args = main_parser.parse_args()
+
+if len(sys.argv) == 1:
+    print(main_parser.format_help())
+    quit(1)
+
+
+class Command(StrEnum):
+    PROJECT = "project"
+    SIMULATE = "simulate"
+
+
+if "--" in sys.argv:
+    tail_args = sys.argv[sys.argv.index("--") + 1 :]
+    command_args = sys.argv[: sys.argv.index("--")]
+else:
+    command_args = sys.argv
+    tail_args = []
+
+args = main_parser.parse_args(command_args[1:])
+command = Command(sys.argv[1])
 
 
 @dataclass
@@ -131,6 +116,9 @@ class Config:
     no_clk: bool = False
     debug: bool = False
     make_ccls: bool = True
+    ucsim_port: int = 1111
+    ucsim_config: str = ".ucsim_config"
+    ucsim_args: List[str] = field(default_factory=list)
 
     def __post_init__(self):
         if (
@@ -147,18 +135,14 @@ class Config:
 def load_conf(path: str = "./forge_conf.toml"):
     with open(path, "rb") as f:
         data = tomllib.load(f)
-        return Config(
-            cube_file=data.get("cube_file", args.cube_file),
-            programmer=data.get("programmer", args.programmer),
-            std_path=data.get("std_path", args.std_path),
-            dependencies=data.get(
-                "dependencies",
-                filter(
-                    lambda x: x == "",
-                    map(lambda x: x.upper(), args.dependencies.split(",")),
-                ),
-            ),
-            no_clk=data.get("no_clk", args.no_clk),
-            no_dce=data.get("no_dce", args.no_dce),
-            src=data.get("src", args.src),
-        )
+        conf = Config(**data)
+        if command == Command.PROJECT:
+            conf.no_dce = args.no_dce
+            conf.no_clk = args.no_clk
+            conf.debug = args.debug
+            conf.programmer = args.programmer
+        if command == Command.SIMULATE:
+            if args.start:
+                conf.ucsim_args += ["-g"]
+            conf.ucsim_args += tail_args
+        return conf

@@ -8,11 +8,11 @@ import sys
 import forge.colors as colors
 import forge.tables as tables
 from forge.openocd import create_openocd_file
-from forge.conf import load_conf, args, main_parser
+from forge.conf import load_conf, args, command, Config, Command
 from forge.ninjamaker import create_buildfile
 from forge.peripherals import parse_cube_file, Clk, cube_peripherals
 from forge.ccls import write_ccls_file
-from forge.ucsim import write_cfg_file
+from forge.ucsim import write_cfg_file, launch_sim
 
 
 class ForgeError(Exception):
@@ -90,8 +90,37 @@ def find_compatible_mcu(mcu):
     return matching_mcu
 
 
-def forge_project():
-    config = load_conf()
+def add_ignores(config: Config):
+
+    silly_files = set(
+        [
+            config.output_dir,
+            config.ninja_file,
+            config.ucsim_config,
+            ".in_simif",
+            ".out_simif",
+            ".ccls",
+            ".ccls-cache/",
+            ".ninja_log",
+        ]
+    )
+
+    lines = set()
+
+    try:
+        with open(".gitignore", "r") as f:
+            lines = set(f.read().split("\n"))
+
+        ignore_us = silly_files - lines
+
+        with open(".gitignore", "a") as f:
+            for mjau in ignore_us:
+                f.write(f"{mjau}\n")
+    except FileNotFoundError:
+        pass
+
+
+def forge_project(config: Config):
     swallow([FileNotFoundError], os.replace)(
         config.ninja_file, "_" + config.ninja_file
     )
@@ -101,6 +130,12 @@ def forge_project():
     if shutil.which("sdcc") is None:
         colors.error("sdcc was not found on this system")
         quit(1)
+
+    try:
+        add_ignores(config)
+    except Exception as e:
+        colors.warning(f"Failed to update gitignore file: {e}")
+
     use_dce = not config.no_dce
     if shutil.which("stm8dce") is None and not config.no_dce:
         colors.warning(
@@ -181,23 +216,27 @@ def forge_project():
 
 
 def forge():
-    if len(sys.argv) == 1:
-        print(main_parser.format_help())
-        quit(1)
 
-    match sys.argv[1]:
-        case "project":
-            forge_project()
-        case "generate-ucsim-setup":
-            write_usim()
+    config = load_conf()
+    match command:
+        case Command.PROJECT:
+            forge_project(config)
+        case Command.SIMULATE:
+            if shutil.which("ucsim_stm8") is None:
+                colors.error("ucsim_stm8 was not found on this system")
+                quit(1)
+            if args.generate_conf:
+                write_usim(config)
+            else:
+                launch_sim(config)
         case _:
             colors.error(f"{args.command} is not a valid command")
             quit(1)
 
 
-def write_usim():
+def write_usim(config: Config):
     try:
-        write_cfg_file(args.map, args.out)
+        write_cfg_file(args.map, config)
     except Exception as e:
         colors.error(f"Failed to create uCsim config: {e}")
-        quit(1)
+        raise e

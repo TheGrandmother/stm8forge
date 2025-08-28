@@ -83,12 +83,12 @@ def create_buildfile(
         if use_dce:
             w.rule(
                 "dce",
-                f"stm8dce -o $outdir/smol {stm8_lib_path} $in && touch $outdir/.smollified",
+                f"mkdir $outdir/smol && stm8dce -o $outdir/smol {stm8_lib_path} $in && touch $outdir/.smollified",
             )
         else:
             w.rule(
                 "dce",
-                f"cp $outdir/asm/* $outdir/smol/ && touch $outdir/.smollified",
+                f"mkdir $outdir/smol && cp $outdir/asm/* $outdir/smol/ && touch $outdir/.smollified",
             )
 
         w.rule(
@@ -107,7 +107,9 @@ def create_buildfile(
 
         w.rule("_reforge", " ".join(sys.argv))
 
-        w.rule("_make_ucsim_config", f"forge generate-ucsim-setup $in $out")
+        w.rule(
+            "_make_ucsim_config", f"forge simulate --generate-conf --map $in"
+        )
 
         w.rule("_clean", "rm -r $outdir")
         w.rule(
@@ -216,7 +218,7 @@ def create_buildfile(
         w.newline()
         w.comment("uCsim configuration file")
         w.build(
-            "ucsim_config",
+            config.ucsim_config,
             "_make_ucsim_config",
             [
                 "build/main.map",

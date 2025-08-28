@@ -5,6 +5,8 @@ __pycache__/
 
 # C extensions
 *.so
+*.c
+*.h
 
 # Distribution / packaging
 .Python
@@ -162,3 +164,11 @@ build.ninja
 serve_openocd
 forge_conf.toml
 main.c
+.usim_config
+./build
+.ccls
+.out_simif
+.ccls-cache/
+.in_simif
+.ninja_log
+.ucsim_config

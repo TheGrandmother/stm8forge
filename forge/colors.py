@@ -2,6 +2,7 @@ reset = "\033[0m"
 red = "\033[31m"
 green = "\033[32m"
 yellow = "\033[33m"
+grey = "\033[37m"
 
 
 def warning(s):
@@ -14,3 +15,7 @@ def success(s):
 
 def error(s):
     print(f"{red}ERROR:\t{s}{reset}")
+
+
+def info(s):
+    print(f"{grey}INFO:\t{s}{reset}")
