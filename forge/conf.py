@@ -116,8 +116,9 @@ class Config:
     no_clk: bool = False
     debug: bool = False
     make_ccls: bool = True
+    ccls_file: str = ".ccls"
     ucsim_port: int = 1111
-    ucsim_config: str = ".ucsim_config"
+    ucsim_file: str = ".ucsim_config"
     ucsim_args: List[str] = field(default_factory=list)
 
     def __post_init__(self):

@@ -96,7 +96,7 @@ def add_ignores(config: Config):
         [
             config.output_dir,
             config.ninja_file,
-            config.ucsim_config,
+            config.ucsim_file,
             ".in_simif",
             ".out_simif",
             ".ccls",

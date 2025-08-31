@@ -41,7 +41,7 @@ def write_cfg_file(map_path: str, config: Config):
         iter(list(map(lambda x: x.replace("\n", ""), f.readlines())))
     )
 
-    with open(config.ucsim_config, "w") as f:
+    with open(config.ucsim_file, "w") as f:
         skipped_areas = ["."]
         for area, symbols in mjau.items():
             if area in skipped_areas:
@@ -64,12 +64,16 @@ def write_cfg_file(map_path: str, config: Config):
 
 def launch_sim(config: Config):
     main = os.path.join(config.output_dir, "main.ihx")
-    subprocess.run(
+    build = subprocess.run(
         ["ninja", main],
-        check=True,
     )
+
+    if build.returncode != 0:
+        colors.error("compilation failed")
+        return
+
     subprocess.run(
-        ["ninja", config.ucsim_config],
+        ["ninja", config.ucsim_file],
         check=True,
     )
     arg = [
@@ -78,7 +82,7 @@ def launch_sim(config: Config):
         "-t",
         "STM8S",
         "-C",
-        config.ucsim_config,
+        config.ucsim_file,
         "-Z",
         str(config.ucsim_port),
         *config.ucsim_args,

@@ -4,6 +4,7 @@ import sys
 
 import forge.ninja as ninja
 from forge.conf import Config
+from forge.testing.test_setup import show_func_defs
 
 
 ninja_file = "build.ninja"
@@ -34,8 +35,14 @@ def gen_smol_asm_target(dep):
 
 standard_flags = (
     "--stack-auto --fverbose-asm --float-reent "
-    + "--no-peep --all-callee-saves --opt-code-size"
+    + "--no-peep --all-callee-saves --opt-code-size "
+    + "--disable-warning 283"
 )
+
+
+def find_test_funcitons(sources, cpp_args):
+    for source in sources:
+        print(show_func_defs(source, cpp_args=cpp_args))
 
 
 def create_buildfile(
@@ -52,9 +59,10 @@ def create_buildfile(
         w.variable("device", device)
         w.variable("outdir", output_dir)
         w.variable("flash_model", flash_model)
+        includes = "-I./ " + "-I" + os.path.join(config.std_path, "inc")
         w.variable(
             "includes",
-            "-I./ " + "-I" + os.path.join(config.std_path, "inc"),
+            includes,
         )
 
         w.variable(
@@ -81,14 +89,19 @@ def create_buildfile(
         )
 
         if use_dce:
+
+            # find_test_funcitons(
+            #     sources,
+            #     cpp_args=f"-D {device}  -I./ -I/usr/local/share/sdcc/include/",
+            # )
             w.rule(
                 "dce",
-                f"mkdir $outdir/smol && stm8dce -o $outdir/smol {stm8_lib_path} $in && touch $outdir/.smollified",
+                f"mkdir -p $outdir/smol && stm8dce -xf _TEST_type_byte_parser -o $outdir/smol {stm8_lib_path} $in && touch $outdir/.smollified",
             )
         else:
             w.rule(
                 "dce",
-                f"mkdir $outdir/smol && cp $outdir/asm/* $outdir/smol/ && touch $outdir/.smollified",
+                f"mkdir -p $outdir/smol && cp $outdir/asm/* $outdir/smol/ && touch $outdir/.smollified",
             )
 
         w.rule(
@@ -111,7 +124,10 @@ def create_buildfile(
             "_make_ucsim_config", f"forge simulate --generate-conf --map $in"
         )
 
-        w.rule("_clean", "rm -r $outdir")
+        w.rule(
+            f"_clean",
+            f"rm -r $outdir && rm {config.ccls_file} && rm {config.ucsim_file}",
+        )
         w.rule(
             "_dirs",
             "mkdir -p $outdir && mkdir -p $outdir/obj && mkdir -p $outdir/smol && mkdir -p $outdir/asm",
@@ -218,7 +234,7 @@ def create_buildfile(
         w.newline()
         w.comment("uCsim configuration file")
         w.build(
-            config.ucsim_config,
+            config.ucsim_file,
             "_make_ucsim_config",
             [
                 "build/main.map",

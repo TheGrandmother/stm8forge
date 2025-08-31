@@ -4,7 +4,7 @@ from os import path
 
 
 def write_ccls_file(device: str, conf: Config):
-    with open(path.join(conf.src, ".ccls"), "w") as f:
+    with open(path.join(conf.src, conf.ccls_file), "w") as f:
         f.write(
             "\n".join(
                 [
