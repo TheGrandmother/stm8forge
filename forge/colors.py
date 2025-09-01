@@ -1,3 +1,5 @@
+import sys
+
 reset = "\033[0m"
 red = "\033[31m"
 green = "\033[32m"
@@ -14,7 +16,7 @@ def success(s):
 
 
 def error(s):
-    print(f"{red}ERROR:\t{s}{reset}")
+    print(f"{red}ERROR:\t{s}{reset}", file=sys.stderr)
 
 
 def info(s):

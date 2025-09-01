@@ -46,19 +46,19 @@ void sif_print(char *s) {
 
 void sif_write(char *s) {
   while (*s) {
-    sif= SIFCM_PRINT;
+    sif= SIFCM_WRITE;
     sif= *s++;
   }
 }
 
 void _assert(char condition, char* message) {
   if (!condition) {
-    test_status |= FAILED;
     sif_print("ASSERT FAILED: ");
     sif_print(message);
     sif_putchar('\n');
-    test_status |= COMPLETE;
-    sif_stop();
+    test_status |= FAILED;
+    // test_status |= COMPLETE;
+    // sif_stop();
   }
 }
 
@@ -74,19 +74,19 @@ void _assert_eq(int lhs, char* lhs_text, int rhs, char* rhs_text, int line, cons
 void _test_assert(char condition, char* cond_text, int line, const char* name) {
   char buf[64];
   if (!condition) {
-    test_status |= FAILED;
-    sif_write("FAILURE:");
     sif_write(name);
     sif_write(":");
-    sprintf(buf, "%d:: ", line);
+    sprintf(buf, "%d\t", line);
     sif_write(buf);
     sif_write(cond_text);
     sif_write("\n");
+    sif_write("\0");
+    test_status |= FAILED;
   }
 }
 
 void test_pass(void) {
-    test_status |= COMPLETE | PASSED;
     sif_write("TEST PASSED\n");
+    test_status |= COMPLETE | PASSED;
     sif_stop();
 }

@@ -1,4 +1,3 @@
-#!/bin/python3
 import os
 import shutil
 import re
@@ -13,6 +12,8 @@ from forge.ninjamaker import create_buildfile
 from forge.peripherals import parse_cube_file, Clk, cube_peripherals
 from forge.ccls import write_ccls_file
 from forge.ucsim import write_cfg_file, launch_sim
+from forge.testing.test_setup import get_testcases
+from forge.testing.runner import TestRunner
 
 
 class ForgeError(Exception):
@@ -92,18 +93,7 @@ def find_compatible_mcu(mcu):
 
 def add_ignores(config: Config):
 
-    silly_files = set(
-        [
-            config.output_dir,
-            config.ninja_file,
-            config.ucsim_file,
-            ".in_simif",
-            ".out_simif",
-            ".ccls",
-            ".ccls-cache/",
-            ".ninja_log",
-        ]
-    )
+    silly_files = set(config.ignore_list())
 
     lines = set()
 
@@ -216,9 +206,15 @@ def forge_project(config: Config):
 
 
 def forge():
-
     config = load_conf()
     match command:
+        case Command.TEST:
+            if isinstance(args.processed_files, list):
+                get_testcases(args.processed_files, config)
+            else:
+                runner = TestRunner(config)
+                runner.run_all()
+
         case Command.PROJECT:
             forge_project(config)
         case Command.SIMULATE:

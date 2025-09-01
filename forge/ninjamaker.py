@@ -40,9 +40,9 @@ standard_flags = (
 )
 
 
-def find_test_funcitons(sources, cpp_args):
+def find_test_funcitons(sources):
     for source in sources:
-        print(show_func_defs(source, cpp_args=cpp_args))
+        show_func_defs(make_target(source, ".c", "pre"))
 
 
 def create_buildfile(
@@ -53,12 +53,17 @@ def create_buildfile(
     use_dce=True,
     peripheral_deps=[],
 ):
+    def target(ending):
+        return os.path.join(config.output_dir, f"{config.target}.{ending}")
+
     with open(ninja_file, "w") as f:
-        sources = sources + peripheral_deps + ["./main.c"]
+        sources = sources + peripheral_deps + [f"./{config.target}.c"]
         w = ninja.Writer(f)
+        w.variable("forge_command", sys.argv[0])
         w.variable("device", device)
         w.variable("outdir", output_dir)
         w.variable("flash_model", flash_model)
+        w.variable("lib_path", stm8_lib_path)
         includes = "-I./ " + "-I" + os.path.join(config.std_path, "inc")
         w.variable(
             "includes",
@@ -70,8 +75,8 @@ def create_buildfile(
             standard_flags,
         )
 
-        ihx_output = os.path.join(output_dir, "main.ihx")
-        elf_output = os.path.join(output_dir, "main.elf")
+        ihx_target = target("ihx")
+        elf_target = target("elf")
 
         w.variable(
             "cflags",
@@ -82,26 +87,31 @@ def create_buildfile(
         w.rule("dep", "sdcc $cflags $includes -o $outdir/ -c $in")
         w.rule("main", "sdcc $cflags $includes -o $outdir/ $in")
         w.rule("compile_asm", "sdcc $cflags $includes -S -o $out $in")
+
+        w.rule("pre_process", "sdcc $cflags $includes -E -o $out $in")
+
         w.rule("assemble", "sdasstm8 -plosg -ff -o $out $in")
         w.rule(
             "debug",
             "sdcc $cflags --debug --out-fmt-elf $includes -o $outdir/ $in",
         )
 
-        if use_dce:
+        w.rule(
+            "resolve_test_functions",
+            "$forge_command test --resolve $in",
+        )
 
-            # find_test_funcitons(
-            #     sources,
-            #     cpp_args=f"-D {device}  -I./ -I/usr/local/share/sdcc/include/",
-            # )
+        if use_dce:
             w.rule(
                 "dce",
-                f"mkdir -p $outdir/smol && stm8dce -xf _TEST_type_byte_parser -o $outdir/smol {stm8_lib_path} $in && touch $outdir/.smollified",
+                "mkdir -p $outdir/smol && "
+                + f"xargs < {config.test_functions_file} stm8dce -o $outdir/smol $lib_path $in && "
+                + "touch $outdir/.smollified",
             )
         else:
             w.rule(
                 "dce",
-                f"mkdir -p $outdir/smol && cp $outdir/asm/* $outdir/smol/ && touch $outdir/.smollified",
+                "mkdir -p $outdir/smol && cp $outdir/asm/* $outdir/smol/ && touch $outdir/.smollified",
             )
 
         w.rule(
@@ -121,13 +131,15 @@ def create_buildfile(
         w.rule("_reforge", " ".join(sys.argv))
 
         w.rule(
-            "_make_ucsim_config", f"forge simulate --generate-conf --map $in"
+            "_make_ucsim_config",
+            f"$forge_command simulate --generate-conf --map $in",
         )
 
         w.rule(
             f"_clean",
-            f"rm -r $outdir && rm {config.ccls_file} && rm {config.ucsim_file}",
+            f"(rm -r {' '.join(config.clean_list())} 2> /dev/null) || true",
         )
+
         w.rule(
             "_dirs",
             "mkdir -p $outdir && mkdir -p $outdir/obj && mkdir -p $outdir/smol && mkdir -p $outdir/asm",
@@ -141,22 +153,22 @@ def create_buildfile(
         w.build(
             "_flash",
             "write_to_flash",
-            [ihx_output],
+            [ihx_target],
         )
         w.build(
             "flash",
             "phony",
-            ["dirs", ninja_file, ihx_output, "_flash"],
+            ["dirs", ninja_file, ihx_target, "_flash"],
         )
         w.build(
             "build",
             "phony",
-            ["dirs", ninja_file, ihx_output],
+            ["dirs", ninja_file, ihx_target],
         )
         w.build(
             "debug",
             "phony",
-            ["dirs", ninja_file, elf_output],
+            ["dirs", ninja_file, ihx_target],
         )
         w.build(
             "clean",
@@ -179,6 +191,29 @@ def create_buildfile(
         w.comment("targets")
 
         w.newline()
+        w.comment("test")
+        w.build(
+            ".test_functions",
+            "resolve_test_functions",
+            [make_target(dep, ".c", "pre") for dep in sources],
+        )
+
+        w.build(
+            "test_setup",
+            "phony",
+            [
+                config.test_functions_file,
+                config.ucsim_file,
+                ihx_target,
+            ],
+        )
+
+        w.newline()
+        w.comment("Pre process files")
+        for dep in sources:
+            w.build(make_target(dep, ".c", "pre"), "pre_process", [dep])
+
+        w.newline()
         w.comment("asm_targets")
         for dep in sources:
             w.build(make_target(dep, ".asm", "asm"), "compile_asm", [dep])
@@ -188,7 +223,8 @@ def create_buildfile(
         w.build(
             "$outdir/.smollified",
             "dce",
-            [make_target(dep, ".asm", "asm") for dep in sources],
+            [".test_functions"]
+            + [make_target(dep, ".asm", "asm") for dep in sources],
         )
         w.newline()
         for dep in sources:
@@ -210,7 +246,7 @@ def create_buildfile(
         w.newline()
         w.comment("linkidink")
         w.build(
-            "build/main.elf",
+            elf_target,
             "link",
             [make_target(dep, ".rel", "obj") for dep in sources],
         )
@@ -218,17 +254,17 @@ def create_buildfile(
         w.newline()
         w.comment("map file")
         w.build(
-            "build/main.map",
+            target("map"),
             "phony",
-            ["build/main.ihx", "dirs"],
+            [ihx_target, "dirs"],
         )
 
         w.newline()
         w.comment("ihx")
         w.build(
-            "build/main.ihx",
+            ihx_target,
             "ihx",
-            ["build/main.elf"],
+            [elf_target],
         )
 
         w.newline()
@@ -237,6 +273,6 @@ def create_buildfile(
             config.ucsim_file,
             "_make_ucsim_config",
             [
-                "build/main.map",
+                target("map"),
             ],
         )

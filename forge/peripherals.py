@@ -158,10 +158,10 @@ def parse_cube_file(file):
                 if name in cube_peripherals:
                     perp = cube_peripherals[name]
                     used_peripherals.add(perp)
-                else:
+                elif name != "SYS":
                     colors.warning(
-                        "Fyi, Forge is not super "
-                        + f"comfy with {name} peripherals"
+                        "Fyi, Forge does not recognize "
+                        + f"{name} as a peripheral"
                     )
             if state == State.PINS:
                 [_, _, functions, *_] = re.split(r"\s+", line)

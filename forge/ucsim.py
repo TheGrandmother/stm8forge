@@ -4,6 +4,7 @@ import subprocess
 import forge.colors as colors
 from forge.conf import Config
 import os
+import json
 
 area_header = re.compile(r"Area\s+Addr.*")
 value_header = r"\s+Value\s+Global.*"
@@ -24,7 +25,7 @@ def parse_map_file(lines: Iterator[str]):
                     value, name = line.strip().split()[:2]
                     symbol_map[area] = symbol_map.get(area, {}) | {
                         # The length of the address must match the decoder exactly
-                        name: format(int(value, 16), "#07x")
+                        name: format(int(value, 16), "#07x"),
                     }
 
     except StopIteration:
@@ -41,13 +42,10 @@ def write_cfg_file(map_path: str, config: Config):
         iter(list(map(lambda x: x.replace("\n", ""), f.readlines())))
     )
 
+    conf_json = {"symbols": {}}
+
     with open(config.ucsim_file, "w") as f:
         skipped_areas = ["."]
-        for area, symbols in mjau.items():
-            if area in skipped_areas:
-                continue
-            for name, value in symbols.items():
-                f.write(to_var_assignent(value, name))
         if (
             "_sif" in mjau["DATA"].keys()
             or "_sif" in mjau["INITIALIZED"].keys()
@@ -57,9 +55,21 @@ def write_cfg_file(map_path: str, config: Config):
             )
             colors.info(f"Enabling simif at {sif_addr}")
             f.write(f"set hw simif rom {sif_addr}\n")
-            f.write(f'set hw simif fin ".in_simif"\n')
-            f.write(f'set hw simif fout ".out_simif"\n')
-        f.write(f"print Serving on port {config.ucsim_port}\n")
+            f.write(f'set hw simif fin "in_simif"\n')
+            f.write(f'set hw simif fout "out_simif"\n')
+            conf_json["simif"] = {
+                "addr": sif_addr,
+                "in": "in_simif",
+                "out": "out_simif",
+            }
+
+        for area, symbols in mjau.items():
+            if area in skipped_areas:
+                continue
+            for name, value in symbols.items():
+                conf_json["symbols"][name] = value
+                f.write(to_var_assignent(value, name))
+    json.dump(conf_json, open(config.ucsim_file + ".json", "w"), indent=2)
 
 
 def launch_sim(config: Config):

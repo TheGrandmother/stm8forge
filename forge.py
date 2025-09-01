@@ -1,3 +1,4 @@
+#!/bin/python3
 from forge.forge import forge
 
 if __name__ == "__main__":
