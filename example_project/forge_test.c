@@ -74,8 +74,8 @@ void _assert(char condition, char* message, int line, const char* name) {
   }
 }
 
-void _assert_eq(int lhs, char* lhs_text, int rhs, char* rhs_text, int line, const char* name){
-  char buf[64];
+void _assert_eq(int lhs, char* lhs_text, int rhs, char* rhs_text, int line, const char* name) {
+  char buf[128];
   if (lhs !=  rhs) {
     sprintf(buf, "%s != %s (0x%x != 0x%x)", lhs_text, rhs_text, lhs, rhs);
     _test_assert(0, buf, line, name);
@@ -91,9 +91,12 @@ void _test_assert(char condition, char* cond_text, int line, const char* name) {
 }
 
 void test_complete(void) {
-    test_status |= COMPLETE;
+  test_status |= COMPLETE;
 }
 
 void test_start(void) {
-    test_status |= RUNNING;
+  for (unsigned char i = 0; i < message_length; i++) {
+    assert_message[i] = 0;
+  }
+  test_status |= RUNNING;
 }

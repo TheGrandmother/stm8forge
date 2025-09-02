@@ -4,71 +4,86 @@
 // supports filtering for channel and message types
 
 
-typedef enum{
-  SYSTEM = 0,
-  CH1  = 1,
-  CH2  = 1<<1,
-  CH3  = 1<<2,
-  CH4  = 1<<3,
-  CH5  = 1<<4,
-  CH6  = 1<<5,
-  CH7  = 1<<6,
-  CH8  = 1<<7,
-  CH9  = 1<<8,
-  CH10 = 1<<9,
-  CH11 = 1<<10,
-  CH12 = 1<<11,
-  CH13 = 1<<12,
-  CH14 = 1<<13,
-  CH15 = 1<<14,
-  CH16 = 1<<15,
-} midi_ch;
 
-
-typedef struct {
-  midi_ch ch;
-  message_type type;
-  unsigned char d1;
-  unsigned char d2;
-} MidiMessage;
-
-
-/*@ 
-  check requires b >= 0x80 && b <= 0xff;
-  assigns \nothing;
-
-  behavior channel_message:
-    assumes b >= 0x80 && b <= 0xef;
-    assigns \nothing;
-    ensures channel_range: \result >= 1 && \result <= 1 << 6;
-
-  behavior silly_messages:
-    assumes b >= 0xf1 && b <= 0xf6;
-    assigns \nothing;
-    ensures is_invalid: \result == INVALID;
-
-  behavior sysex_start:
-    assumes b >= 0xf0;
-    assigns \nothing;
-    ensures is_sysex_start: \result == SYSEX_START;
-
-  behavior system_message:
-    assumes b >= 0xf7 && b <= 0xff;
-    assigns \nothing;
-    ensures channel_range: \result >= 1 << 8 && \result <= 1 << 15;
-
-  ensures isMessageType(\result);
-  disjoint behaviors;
+/*@
+  assigns /nothing;
+  ensures 1 <= /result <=3;
  */
-message_type parse_type_byte(unsigned char b) {
-  assert(b >= 0x80, "Type byte not in range");
-  if (b <= 0xef) {
-    return 1 << ((b >> 4) - 8);
-  } else if (b == 0xf0) {
-    return SYSEX_START;
-  } else if (b >= 0xf1 && b <= 0xf6) {
-    return INVALID;
-  } else {
-    return 1 << ((b & 0xf) + 1);
-  }
+unsigned char get_length(message_type t) {
+    switch (t) {
+    case INVALID:
+      return 1;
+    case NOTE_ON:
+      return 3;
+    case NOTE_OFF:
+      return 3;
+    case AFTERTOUCH:
+      return 3;
+    case CC:
+      return 3;
+    case PROGRAM_CHANGE:
+      return 2;
+    case CH_AFTERTOUCH:
+      return 2;
+    case PITCH_BEND:
+      return 2;
+    case SYSEX_START:
+      return 1;
+    case SYSEX_END:
+      return 1;
+    case CLOCK:
+      return 1;
+    case _ME:
+      return 1;
+    case START:
+      return 1;
+    case CONTINUE:
+      return 1;
+    case STOP:
+      return 1;
+    case ACTIVE_SENSE:
+      return 1;
+    case RESET:
+      return 1;
+    }
 }
+
+message_type parse_type_byte(unsigned char b) {
+    assert(b >= 0x80, "Type byte not in range");
+    if (b <= 0xef) {
+        return 1 << ((b >> 4) - 8);
+    } else if (b == 0xf0) {
+        return SYSEX_START;
+    } else if (b >= 0xf1 && b <= 0xf6) {
+        return INVALID;
+    } else {
+        return 1 << ((b & 0xf) + 1);
+    }
+}
+
+
+char is_channel_message(message_type t) {
+    return t >= NOTE_ON && t <= PITCH_BEND;
+}
+
+MidiMessage parse_midi(unsigned char* buf) {
+    MidiMessage message;
+    message.type = parse_type_byte(buf[0]);
+    message._length = get_length(message.type);
+
+    if (message._length >= 2) {
+      message.d1 = buf[1];
+    }
+    if (message._length == 3) {
+      message.d2 = buf[2];
+      }
+
+    if (is_channel_message(message.type)) {
+        message.ch = 1 << ((buf[0] & 0x0f) + 1);
+    } else {
+        message.ch = SYSTEM;
+    }
+
+    return message;
+}
+
