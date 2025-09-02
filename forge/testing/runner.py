@@ -36,16 +36,17 @@ class TestRunner:
             quit(1)
 
         self.cases = {}
+        self.failures = 0
 
     def run(self, test_function):
         port = random.randint(10000, 60000)
         args = [
             "ucsim_stm8",
             os.path.join(self.config.output_dir, self.config.target + ".ihx"),
+            "-q",
             "-P",
             "-t",
             "STM8S",
-            "-q",
             "-C",
             self.config.ucsim_file,
             "-Z",
@@ -53,51 +54,74 @@ class TestRunner:
             *self.config.ucsim_args,
         ]
 
-        instance = subprocess.Popen(args, stdout=subprocess.PIPE)
-        colors.info(f"Started on port {port}")
-        time.sleep(0.5)
+        instance = subprocess.Popen(
+            args, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+        # colors.info(f"Started simulator on port {port}")
 
         host = "localhost"
 
-        got_license = False
+        status_addr = "_test_status"
 
         with socket.socket() as s:
-            s.connect((host, port))
+            while True:
+                try:
+                    s.connect((host, port))
+                    break
+                except ConnectionRefusedError:
+                    pass
+
             while s.recv(1)[-1] != 0:
                 pass  # some non text is sent initially
             sim = Sim(s)
             sim.get_reply()  # Gets the license text
 
-            state = sim.get_state()
-            if state.simulation != "stopped":
+            if sim.get_state().simulation != "stopped":
                 colors.error("Simulator not in stopped state")
                 quit(1)
 
-            sim.execute("b rom w _test_status")
-            completed = False
-            passed = False
-            failed = False
+            initial_data = sim.get_bytes(
+                self.sim_conf["initializer"], self.sim_conf["init_size"]
+            )
+            sim.set_bytes(self.sim_conf["initialized"], initial_data)
+            sim.execute(f"b rom w {status_addr}")
             sim.go(test_function)
+            completed = False
+            case_failed = False
+            assert_triggered = False
             while not completed:
-                failed = sim.get_bit("_test_status", 0)
-                passed = sim.get_bit("_test_status", 1)
-                completed = sim.get_bit("_test_status", 2)
+                failed = sim.get_bit(status_addr, 0)
+                case_failed = case_failed or failed
+                assert_triggered = sim.get_bit(status_addr, 4)
+                completed = sim.get_bit(status_addr, 2) or assert_triggered
                 if failed:
-                    with open(self.sim_conf["simif"]["out"]) as f:
-                        lines = f.readlines()
-                        colors.error(f"{lines[0][:-1]}")
+                    message = sim.get_string("_assert_message")
+                    colors.error(f"{test_function}: {message}")
                 if not completed:
                     sim.go("")
 
-            if passed and not failed:
-                colors.success(f"{test_function}")
-            if failed:
-                colors.error(f"{test_function} NOT OK")
+            if case_failed:
+                self.failures = self.failures + 1
+                if assert_triggered:
+                    colors.error(
+                        f"{test_function}: Failed by assert violation"
+                    )
+                else:
+                    colors.error(f"{test_function}: Some tests failed")
+            else:
+                colors.success(f"{test_function}: All tests passed ")
+
             sim.kill()
             while instance.poll() is None:
                 pass
-            print(instance.returncode)
 
     def run_all(self):
+        case_count = len(self.functions)
+        colors.info(f"==== Found {case_count} tests ====")
         for func in self.functions:
             self.run(func)
+        s = f"==== {case_count-self.failures} of {case_count} passed ===="
+        if self.failures != 0:
+            colors.error(s)
+        else:
+            colors.success(s)

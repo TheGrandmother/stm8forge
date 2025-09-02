@@ -2,13 +2,20 @@
 #include <stdio.h>
 
 volatile unsigned char sif;
+volatile unsigned char sifa;
+volatile unsigned char sifaaa;
 
-volatile unsigned char test_status;
+volatile unsigned char test_status = 0;
+volatile unsigned int test_mhay = 0xBABE;
+#define message_length 64
+volatile char assert_message[message_length];
 
 enum tets_status {
-  FAILED = 1,
-  PASSED = 2,
-  COMPLETE = 4
+  FAILED =    0b00001,
+  PASSED =    0b00010,
+  COMPLETE =  0b00100,
+  RUNNING =   0b01000,
+  ASSERT =    0b10000
 };
 
 
@@ -51,14 +58,19 @@ void sif_write(char *s) {
   }
 }
 
-void _assert(char condition, char* message) {
+void _assert(char condition, char* message, int line, const char* name) {
   if (!condition) {
-    sif_print("ASSERT FAILED: ");
-    sif_print(message);
-    sif_putchar('\n');
-    test_status |= FAILED;
-    // test_status |= COMPLETE;
-    // sif_stop();
+    if (test_status & RUNNING) {
+      sprintf(assert_message, "%s:%d ASSERT %s", name, line, message);
+      test_status |= (FAILED | ASSERT);
+    } else {
+      sif_print("assert: ");
+      sif_print(name);
+      sif_print(" ");
+      sif_print(message);
+      sif_putchar('\n');
+      sif_stop();
+    }
   }
 }
 
@@ -72,21 +84,16 @@ void _assert_eq(int lhs, char* lhs_text, int rhs, char* rhs_text, int line, cons
 }
 
 void _test_assert(char condition, char* cond_text, int line, const char* name) {
-  char buf[64];
   if (!condition) {
-    sif_write(name);
-    sif_write(":");
-    sprintf(buf, "%d\t", line);
-    sif_write(buf);
-    sif_write(cond_text);
-    sif_write("\n");
-    sif_write("\0");
+    sprintf(assert_message, "%s:%d  %s", name, line, cond_text);
     test_status |= FAILED;
   }
 }
 
-void test_pass(void) {
-    sif_write("TEST PASSED\n");
-    test_status |= COMPLETE | PASSED;
-    sif_stop();
+void test_complete(void) {
+    test_status |= COMPLETE;
+}
+
+void test_start(void) {
+    test_status |= RUNNING;
 }
