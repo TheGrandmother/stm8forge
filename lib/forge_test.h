@@ -1,6 +1,11 @@
 #ifndef FORGE_TEST_H
 #define FORGE_TEST_H
 
+/*@
+  terminates \true;
+  exits \true;
+  assigns \nothing;
+*/
 void _assert(char condition, char* message, int line, const char* name);
 #define assert(condition, message) _assert(condition, message, __LINE__, __func__)
 

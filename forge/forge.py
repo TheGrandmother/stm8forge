@@ -2,6 +2,7 @@ import os
 import shutil
 import re
 import logging
+import subprocess
 
 
 import forge.tables as tables
@@ -70,6 +71,7 @@ def swallow(exceptions, fn):
     def wrap(*args, **kwargs):
         try:
             fn(*args, **kwargs)
+
         except Exception as e:
             for excemption in exceptions:
                 if isinstance(e, excemption):
@@ -114,7 +116,10 @@ def add_ignores(config: Config):
 
 
 def forge_project(config: Config):
-    swallow([FileNotFoundError], os.replace)(
+    if os.path.exists(config.ninja_file):
+        logger.debug("Doing ninja clean")
+        subprocess.run(["ninja", "clean"], stdout=subprocess.DEVNULL)
+    swallow([FileNotFoundError], shutil.copy)(
         config.ninja_file, "_" + config.ninja_file
     )
     if shutil.which("ninja") is None:

@@ -51,20 +51,29 @@ def create_buildfile(
     config: Config,
     sources: list[str],
     use_dce=True,
-    peripheral_deps=[],
+    peripheral_deps: list[str] = [],
 ):
     def target(ending):
         return os.path.join(config.output_dir, f"{config.target}.{ending}")
 
     with open(ninja_file, "w") as f:
         sources = sources + peripheral_deps + [f"./{config.target}.c"]
+        forge_lib = os.path.join(config.forge_location, "lib")
+        sources = sources + list(
+            map(
+                lambda x: os.path.join(forge_lib, x),
+                filter(lambda x: x.endswith(".c"), os.listdir(forge_lib)),
+            )
+        )
         w = ninja.Writer(f)
         w.variable("forge_command", sys.argv[0])
         w.variable("device", device)
         w.variable("outdir", output_dir)
         w.variable("flash_model", flash_model)
         w.variable("lib_path", stm8_lib_path)
-        includes = "-I./ " + "-I" + os.path.join(config.std_path, "inc")
+        includes = " -I".join(
+            ["", "./", os.path.join(config.std_path, "inc"), forge_lib]
+        )
         w.variable(
             "includes",
             includes,

@@ -15,6 +15,7 @@ def write_ccls_file(device: str, conf: Config):
                     "-I./",
                     f"-I{path.join(conf.std_path, 'inc')}",
                     f"-I{stm8_lib_path}",
+                    f"-I{path.join(conf.forge_location, 'lib')}",
                 ]
             )
         )

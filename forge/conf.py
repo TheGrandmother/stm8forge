@@ -29,6 +29,7 @@ class Config:
     ucsim_file: str = ".ucsim_config"
     ucsim_args: List[str] = field(default_factory=list)
     test_functions_file: str = ".test_functions"
+    forge_location: str = os.path.split(os.path.dirname(__file__))[0]
 
     def __post_init__(self):
         if (
