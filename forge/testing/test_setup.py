@@ -2,7 +2,9 @@ from pycparser import c_ast, CParser
 from forge.conf import Config
 from typing import List
 import re
-import forge.colors as colors
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class FuncCallVisitor(c_ast.NodeVisitor):
@@ -34,7 +36,7 @@ def show_func_defs(filename):
             v.visit(ast)
             return v.names
         except Exception as e:
-            colors.warning(
+            logger.warning(
                 f"Could not find test declarations in {filename}: {e}"
             )
             return []

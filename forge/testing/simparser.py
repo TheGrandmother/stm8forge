@@ -1,7 +1,10 @@
 from socket import socket
 from dataclasses import dataclass
 import re
-import forge.colors as colors
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 chunk_size = 64
 
@@ -67,8 +70,8 @@ class Sim:
         self.s.sendall(bytes(command + "\n", "utf-8"))
         reply = self.get_reply()
         if reply != "":
-            colors.error(f"Failed to execute {command}")
-            colors.error(f"Reply: {reply}")
+            logger.error(f"Failed to execute {command}")
+            logger.error(f"Reply: {reply}")
             quit(1)
 
     def send(self, command: str):

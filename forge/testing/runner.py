@@ -1,14 +1,14 @@
-import re
-from typing import Dict, Iterator
 import subprocess
-import forge.colors as colors
 from forge.conf import Config
+from forge.colors import colorize
 from forge.testing.simparser import Sim
 import os
 import json
 import random
 import socket
-import time
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class TestRunner:
@@ -19,20 +19,20 @@ class TestRunner:
         )
 
         if build.returncode != 0:
-            colors.error("Compilation failed")
+            logger.error("Compilation failed")
             quit(1)
 
         with open(config.test_functions_file) as f:
             entries = f.read().split(" ")
             if len(entries) == 1:
-                colors.warning("No test functions were found in this project")
+                logger.warning("No test functions were found in this project")
             self.functions = entries[1:]  # First is always -xf
 
         with open(config.ucsim_file + ".json") as f:
             self.sim_conf = json.loads(f.read())
 
         if "simif" not in self.sim_conf:
-            colors.error("simlator interface not configured")
+            logger.error("simlator interface not configured")
             quit(1)
 
         self.cases = {}
@@ -57,7 +57,7 @@ class TestRunner:
         instance = subprocess.Popen(
             args, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
-        # colors.info(f"Started simulator on port {port}")
+        logger.debug(f"Started simulator on port {port}")
 
         host = "localhost"
 
@@ -77,7 +77,7 @@ class TestRunner:
             sim.get_reply()  # Gets the license text
 
             if sim.get_state().simulation != "stopped":
-                colors.error("Simulator not in stopped state")
+                logger.error("Simulator not in stopped state")
                 quit(1)
 
             initial_data = sim.get_bytes(
@@ -96,20 +96,22 @@ class TestRunner:
                 completed = sim.get_bit(status_addr, 2) or assert_triggered
                 if failed:
                     message = sim.get_string("_assert_message")
-                    colors.error(f"{test_function}: {message}")
+                    logger.error(f"{test_function}: {message}")
                 if not completed:
                     sim.go("")
 
             if case_failed:
                 self.failures = self.failures + 1
                 if assert_triggered:
-                    colors.error(
+                    logger.error(
                         f"{test_function}: Failed by assert violation"
                     )
                 else:
-                    colors.error(f"{test_function}: Some tests failed")
+                    logger.error(f"{test_function}: Some tests failed")
             else:
-                colors.success(f"{test_function}: All tests passed ")
+                logger.info(
+                    f"{test_function}: {colorize('All tests passed')} "
+                )
 
             sim.kill()
             while instance.poll() is None:
@@ -117,11 +119,11 @@ class TestRunner:
 
     def run_all(self):
         case_count = len(self.functions)
-        colors.info(f"==== Found {case_count} tests ====")
+        logger.info(f"==== Found {case_count} tests ====")
         for func in self.functions:
             self.run(func)
         s = f"==== {case_count-self.failures} of {case_count} passed ===="
         if self.failures != 0:
-            colors.error(s)
+            logger.error(s)
         else:
-            colors.success(s)
+            logger.info(colorize(s))

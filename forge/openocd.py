@@ -1,15 +1,17 @@
 import os
 import stat
 import shutil
+import logging
 
 
-import forge.colors as colors
 import forge.tables as tables
+
+logger = logging.getLogger()
 
 
 def create_openocd_file(model):
     if shutil.which("openocd") is None:
-        colors.warning("No executable for openocd was found. Skipping")
+        logger.warning("No executable for openocd was found. Skipping")
         return
     conf = None
     for c in tables.openocd_configs:
@@ -17,7 +19,7 @@ def create_openocd_file(model):
             if conf is None or len(c) > len(conf):
                 conf = c
     if conf is None:
-        colors.warning(
+        logger.warning(
             "There is no suitable openocd config for {model}. Skipping"
         )
         return
@@ -33,4 +35,4 @@ def create_openocd_file(model):
     st = os.stat("serve_openocd")
     os.chmod("serve_openocd", st.st_mode | stat.S_IEXEC)
 
-    colors.success("Wrote openocd command to ./serve_openocd")
+    logger.success("Wrote openocd command to ./serve_openocd")

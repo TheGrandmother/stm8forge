@@ -1,14 +1,18 @@
 import re
 from typing import Dict, Iterator
 import subprocess
-import forge.colors as colors
+
 from forge.conf import Config
 import os
 import json
+import logging
 
 area_header = re.compile(r"Area\s+Addr.*")
 value_header = r"\s+Value\s+Global.*"
 delim = r"\s+---.*"
+
+
+logger = logging.getLogger()
 
 
 def addr(s):
@@ -89,7 +93,7 @@ def launch_sim(config: Config):
     )
 
     if build.returncode != 0:
-        colors.error("compilation failed")
+        logger.error("compilation failed")
         return
 
     subprocess.run(
@@ -107,7 +111,7 @@ def launch_sim(config: Config):
         str(config.ucsim_port),
         *config.ucsim_args,
     ]
-    colors.info(" ".join(arg))
+    logger.debug(" ".join(arg))
     try:
         subprocess.run(
             arg,
@@ -115,4 +119,4 @@ def launch_sim(config: Config):
         )
     except KeyboardInterrupt:
         print()
-        colors.info("Simulation interrupted")
+        logger.info("Simulation interrupted")

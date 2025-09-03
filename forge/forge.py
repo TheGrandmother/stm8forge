@@ -1,11 +1,11 @@
 import os
 import shutil
 import re
-import sys
+import logging
 
 
-import forge.colors as colors
 import forge.tables as tables
+from forge.colors import Formatter
 from forge.openocd import create_openocd_file
 from forge.conf import load_conf, args, command, Config, Command
 from forge.ninjamaker import create_buildfile
@@ -14,6 +14,9 @@ from forge.ccls import write_ccls_file
 from forge.ucsim import write_cfg_file, launch_sim
 from forge.testing.test_setup import get_testcases
 from forge.testing.runner import TestRunner
+
+
+logger = logging.getLogger()
 
 
 class ForgeError(Exception):
@@ -38,9 +41,9 @@ def get_sources(src):
     if not has_main:
         raise ForgeError(f"No main.c file was found in {src}")
     if not has_it_c:
-        colors.warning(f"No stm8s_it.c file was found in {src}")
+        logger.warning(f"No stm8s_it.c file was found in {src}")
     if not has_conf_h:
-        colors.warning(f"No stm8s_conf.h file was found in {src}")
+        logger.warning(f"No stm8s_conf.h file was found in {src}")
 
     return sources
 
@@ -54,7 +57,7 @@ def get_flash_model(mcu):
             if match is None:
                 match = flash_model
             else:
-                colors.warning(
+                logger.warning(
                     f"{match} and {flash_model} are matching flash configs"
                 )
     if match is None:
@@ -115,30 +118,30 @@ def forge_project(config: Config):
         config.ninja_file, "_" + config.ninja_file
     )
     if shutil.which("ninja") is None:
-        colors.error("ninja was not found on this system")
+        logger.error("ninja was not found on this system")
         quit(1)
     if shutil.which("sdcc") is None:
-        colors.error("sdcc was not found on this system")
+        logger.error("sdcc was not found on this system")
         quit(1)
 
     try:
         add_ignores(config)
     except Exception as e:
-        colors.warning(f"Failed to update gitignore file: {e}")
+        logger.warning(f"Failed to update gitignore file: {e}")
 
     use_dce = not config.no_dce
     if shutil.which("stm8dce") is None and not config.no_dce:
-        colors.warning(
+        logger.warning(
             "stm8dce was not found on this system. DCE not avaliable, you shoud address this."
         )
         use_dce = False
     if config.no_dce:
-        colors.warning("Dce is disabled.")
+        logger.warning("Dce is disabled.")
 
     try:
         os.stat(os.path.join(config.std_path, "inc", "stm8s.h"))
     except FileNotFoundError:
-        colors.error(
+        logger.error(
             "Could not find stm8s.h in "
             + f'{os.path.join(config.std_path, "inc")} '
             + "std_path."
@@ -147,10 +150,10 @@ def forge_project(config: Config):
 
     try:
         if config.cube_file is None:
-            colors.error("No cube file specified")
+            logger.error("No cube file specified")
             exit(1)
         with open(config.cube_file, "r") as cube_file:
-            colors.success(
+            logger.info(
                 f"Resolving peripherals and mcu model from {cube_file.name}"
             )
             [mcu, deps] = parse_cube_file(cube_file)
@@ -174,7 +177,7 @@ def forge_project(config: Config):
             if device is None:
                 raise ForgeError(f"{mcu} is not a suported compiletarget")
             flash_model = get_flash_model(mcu)
-            colors.success(f"Compiling as {device}, flashing as {flash_model}")
+            logger.info(f"Compiling as {device}, flashing as {flash_model}")
             create_buildfile(
                 device,
                 flash_model,
@@ -183,7 +186,7 @@ def forge_project(config: Config):
                 use_dce=use_dce,
                 peripheral_deps=list(dep_paths),
             )
-            colors.success(f"Build config written to ./{config.ninja_file}")
+            logger.info(f"Build config written to ./{config.ninja_file}")
             if config.debug:
                 create_openocd_file(mcu)
 
@@ -193,13 +196,13 @@ def forge_project(config: Config):
             swallow([FileNotFoundError], shutil.rmtree)(config.output_dir)
             quit(0)
     except ForgeError as e:
-        colors.error(e)
+        logger.error(e)
         quit(1)
     except Exception as e:
         swallow([FileNotFoundError], os.replace)(
             "_" + config.ninja_file, config.ninja_file
         )
-        colors.error("Unkown error when creating build config:")
+        logger.error("Unkown error when creating build config")
         raise e
     finally:
         swallow([FileNotFoundError], os.remove)("_" + config.ninja_file)
@@ -207,6 +210,16 @@ def forge_project(config: Config):
 
 def forge():
     config = load_conf()
+
+    logger.setLevel(logging.DEBUG)
+
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.DEBUG)
+
+    ch.setFormatter(Formatter())
+
+    logger.addHandler(ch)
+
     match command:
         case Command.TEST:
             if isinstance(args.processed_files, list):
@@ -219,14 +232,14 @@ def forge():
             forge_project(config)
         case Command.SIMULATE:
             if shutil.which("ucsim_stm8") is None:
-                colors.error("ucsim_stm8 was not found on this system")
+                logger.error("ucsim_stm8 was not found on this system")
                 quit(1)
             if args.generate_conf:
                 write_usim(config)
             else:
                 launch_sim(config)
         case _:
-            colors.error(f"{args.command} is not a valid command")
+            logger.error(f"{args.command} is not a valid command")
             quit(1)
 
 
@@ -234,5 +247,5 @@ def write_usim(config: Config):
     try:
         write_cfg_file(args.map, config)
     except Exception as e:
-        colors.error(f"Failed to create uCsim config: {e}")
+        logger.error(f"Failed to create uCsim config: {e}")
         raise e

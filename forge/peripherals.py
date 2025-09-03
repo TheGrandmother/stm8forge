@@ -1,6 +1,8 @@
 from enum import Enum
 import re
-import forge.colors as colors
+import logging
+
+logger = logging.getLogger()
 
 
 class Peripheral:
@@ -38,7 +40,6 @@ class Can(Peripheral):
         self.sources = ["stm8s_can.c"]
 
 
-# Crystall stuff.... not sure how to deal with these
 class Rcc(Peripheral):
     def __init__(self):
         self.sources = []  # ?
@@ -159,7 +160,7 @@ def parse_cube_file(file):
                     perp = cube_peripherals[name]
                     used_peripherals.add(perp)
                 elif name != "SYS":
-                    colors.warning(
+                    logger.warning(
                         "Fyi, Forge does not recognize "
                         + f"{name} as a peripheral"
                     )
