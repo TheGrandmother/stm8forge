@@ -1,13 +1,16 @@
 # stm8forge
 
-This is very WIP and unusable.
+This is very WIP and not particularly.
 
-So this is a pretty cringe project with a cringe name by someone who does not know anything about embedded development and is pretty shit at software development.
-But it may against all odds help someone get started with the STM8 development on a POSIX system for people who don't want to write everything by hand or entertain the notion of using an eclipse based IDE.
-
+This project is fairly cringe.
+I do not have the skills to deliver this much features with any reasonable quality.
 I have no understanding of any of this and it is all just things that I managed to get working somehow.
 
-Pull requests and sugestions are not expected but would be very welcome.
+But it may against all odds help someone get started with the STM8 development on a POSIX system for
+that who don't want to write everything by hand or entertain the notion of using an eclipse based IDE.
+
+
+Pull requests and sugestions are not expected but would be actually very welcome.
 
 ### Acknowledgement
 Major thanks goes out to [the dude who wrote this blog post](https://www.codementor.io/@hbendali/getting-started-with-stm8-development-tools-on-gnu-linux-zu59yo35x). The bulk of all the installation steps in the requirements sections are pretty much copied verbatim and a lotr of what was written here was used as the base for this.
