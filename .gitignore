@@ -172,3 +172,9 @@ main.c
 .in_simif
 .ninja_log
 .ucsim_config
+.frama-c/
+.ivette
+.test_functions
+.ucsim_config.json
+_CoqProject
+
