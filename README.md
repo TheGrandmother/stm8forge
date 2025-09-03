@@ -56,12 +56,18 @@ void TEST_test_something_else() {
 
 Running `forge test` will then give us the following output.
 ```
+[5/14] mkdir -p ./build/smol && xargs < .test_functions stm8dce ...m/main.asm build/asm/forge_test.asm && touch ./build/.smollified
+Detected and removed:
+46 unused functions from a total of 58 functions
+2 unused constants from a total of 17 constants
+[14/14] ../forge.py simulate --generate-conf --map build/main.map
 ==== Found 2 tests ====
-_TEST_something: TEST_something:8  parse_type_byte(0xE2) != PROGRAM_CHANGE (0x40 != 0x10)
+_TEST_something: TEST_something:11  parse_type_byte(0xE2) != PROGRAM_CHANGE (0x40 != 0x10)
 _TEST_something: Some tests failed
 _TEST_test_something_else: All tests passed 
 ==== 1 of 2 passed ====
 ```
+Showing what went wrong.
 
 `test_complete()` must be called when the test is finished regardless of if it passed or not.
 

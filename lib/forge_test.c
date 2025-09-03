@@ -2,11 +2,8 @@
 #include <stdio.h>
 
 volatile unsigned char sif;
-volatile unsigned char sifa;
-volatile unsigned char sifaaa;
 
 volatile unsigned char test_status = 0;
-volatile unsigned int test_mhay = 0xBABE;
 #define message_length 128
 volatile char assert_message[message_length];
 
