@@ -16,7 +16,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
 lib64/
 parts/
 sdist/
@@ -177,4 +176,5 @@ main.c
 .test_functions
 .ucsim_config.json
 _CoqProject
-
+out_simif
+example_project/
