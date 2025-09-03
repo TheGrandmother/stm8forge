@@ -2,10 +2,10 @@
 #include <forge_test.h>
 
 
-void TEST_type_byte_parser() {
+void TEST_something() {
   test_start();
   assert_eq(parse_type_byte(0x80), NOTE_ON);
-  assert_eq(parse_type_byte(0xc2), PROGRAM_CHANGE);
+  assert_eq(parse_type_byte(0xC2), PROGRAM_CHANGE);
   assert_eq(parse_type_byte(0x9D), NOTE_OFF);
   assert_eq(parse_type_byte(0xF2), INVALID);
   assert_eq(parse_type_byte(0xFC), STOP);
@@ -15,7 +15,7 @@ void TEST_type_byte_parser() {
 
 
 
-void TEST_basic_parsing_message() {
+void TEST_test_something_else() {
   test_start();
   MidiMessage m;
 

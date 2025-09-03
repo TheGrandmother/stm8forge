@@ -1,3 +1,4 @@
+import logging
 import tomllib
 from dataclasses import dataclass, field, fields, MISSING
 from typing import List
@@ -7,11 +8,15 @@ import os
 import sys
 
 
+logger = logging.getLogger()
+
+
 std_path_default = "./STM8S_StdPeriph_Lib/Libraries/STM8S_StdPeriph_Driver/"
 
 
 @dataclass
 class Config:
+    log_level: int = logging.INFO
     cube_file: str | None = None
     mcu: str | None = None
     dependencies: List[str] = field(default_factory=list)
@@ -29,6 +34,7 @@ class Config:
     ucsim_port: int = 1111
     ucsim_file: str = ".ucsim_config"
     ucsim_args: List[str] = field(default_factory=list)
+    ucsim_interactive: bool = False
     test_functions_file: str = ".test_functions"
     forge_location: str = os.path.split(os.path.dirname(__file__))[0]
 
@@ -106,7 +112,15 @@ ucsim_parser.add_argument(
     "--start",
     dest="start",
     action="store_true",
-    help="Start the simulation",
+    help="Start execution (main) directly.",
+)
+
+ucsim_parser.add_argument(
+    "-i",
+    dest="ucsim_interactive",
+    action="store_true",
+    default=defaults["ucsim_interactive"],
+    help="Run the simulator in interactive mode",
 )
 
 
@@ -183,20 +197,27 @@ else:
     tail_args = []
 
 args = main_parser.parse_args(command_args[1:])
+
+# this is horrible
 command = Command(sys.argv[1])
 
 
 def load_conf(path: str = "./forge_conf.toml"):
-    with open(path, "rb") as f:
-        data = tomllib.load(f)
-        conf = Config(**data)
-        if command == Command.PROJECT:
-            conf.no_dce = args.no_dce
-            conf.no_clk = args.no_clk
-            conf.debug = args.debug
-            conf.programmer = args.programmer
-        if command == Command.SIMULATE:
-            if args.start:
-                conf.ucsim_args += ["-g"]
-            conf.ucsim_args += tail_args
-        return conf
+    try:
+        with open(path, "rb") as f:
+            data = tomllib.load(f)
+            conf = Config(**data)
+            if command == Command.PROJECT:
+                conf.no_dce = args.no_dce
+                conf.no_clk = args.no_clk
+                conf.debug = args.debug
+                conf.programmer = args.programmer
+            if command == Command.SIMULATE:
+                if args.start:
+                    conf.ucsim_args += ["-g"]
+                conf.ucsim_args += tail_args
+                conf.ucsim_interactive = args.ucsim_interactive
+            return conf
+    except FileNotFoundError:
+        logger.error("No forge_conf.toml file found.")
+        quit(1)

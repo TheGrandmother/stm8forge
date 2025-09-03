@@ -97,6 +97,7 @@ class TestRunner:
                 if failed:
                     message = sim.get_string("_assert_message")
                     logger.error(f"{test_function}: {message}")
+                    sim.set_bit(status_addr, 0, 0)
                 if not completed:
                     sim.go("")
 

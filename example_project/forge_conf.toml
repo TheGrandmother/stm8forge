@@ -5,3 +5,5 @@ std_path="/home/grandmother/Downloads/STM8S_StdPeriph_Lib/Libraries/STM8S_StdPer
 no_dce=false
 dependencies=[]
 ucsim_port=11111
+
+log_level=0

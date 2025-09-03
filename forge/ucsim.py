@@ -107,10 +107,14 @@ def launch_sim(config: Config):
         "STM8S",
         "-C",
         config.ucsim_file,
-        "-Z",
-        str(config.ucsim_port),
-        *config.ucsim_args,
     ]
+    if not config.ucsim_interactive:
+        arg += [
+            "-Z",
+            str(config.ucsim_port),
+        ]
+    arg += config.ucsim_args
+
     logger.debug(" ".join(arg))
     try:
         subprocess.run(

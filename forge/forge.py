@@ -215,7 +215,7 @@ def forge_project(config: Config):
 def forge():
     config = load_conf()
 
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(config.log_level)
 
     ch = logging.StreamHandler()
     ch.setLevel(logging.DEBUG)

@@ -1,6 +1,7 @@
 from socket import socket
 from dataclasses import dataclass
 import re
+from typing import Literal
 
 import logging
 
@@ -86,6 +87,10 @@ class Sim:
         self.s.sendall(bytes(f"d {addr}.{bit}\n", "utf-8"))
         reply = self.get_reply()
         return reply[-1] == "1"
+
+    def set_bit(self, addr: str, bit: int, val: Literal[0] | Literal[1]):
+        self.s.sendall(bytes(f"set bit {addr}.{bit} {val}\n", "utf-8"))
+        self.get_reply()
 
     def kill(self):
         self.s.sendall(bytes(f"kill\n", "utf-8"))
