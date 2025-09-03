@@ -95,7 +95,7 @@ ninja_file="build.ninja"
 output_dir="./build"
 
 #Location of source code
-src: str = "."
+src = "."
 
 # Peripherals to be addded regardless of what is found in the cube file
 # This will be merged with things found in the cube file if provided
@@ -170,14 +170,11 @@ $ pip install stm8dce
 ### [STM8CubeMx](https://www.st.com/en/development-tools/stm8cubemx.html)
 Whatever version is avaliable, have fun.
 
-### [STM8S_StdPeriph_Lib](https://my.st.com/content/my_st_com/en/products/embedded-software/mcus-embedded-software/stm8-embedded-software/stsw-stm8069.html)
+### [STM8S_StdPeriph_Lib](https://www.st.com/content/st_com/en/products/embedded-software/mcu-and-mpu-embedded-software/stm8-embedded-software/stsw-stm8069.html)
 Download the STM8S standard peripheral library which is hidden away behind some moronic license.
 
-You will need to patch the libs to make it compatible with SDCC.
-[](https://github.com/gicking/SPL_2.2.0_SDCC_patch)
+You will need to [patch](https://github.com/gicking/SPL_2.2.0_SDCC_patch) the libs to make it compatible with SDCC.
 
-Your mileage may vary here as well. I had some issues getting rid of a bunch of warnings so i needed to
-add `void _assert_failed(void);` to my main file to get SDCC to shut up.
 
 ### stm8flash
 What forge will use to flash your thing
