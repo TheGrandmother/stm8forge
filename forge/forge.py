@@ -51,20 +51,19 @@ def get_sources(src):
 
 def get_flash_model(mcu):
     mcu = mcu.lower()
-    match = None
+    matches = []
     for flash_model in tables.stm8flash_suported_models:
-        model_re = re.compile(flash_model.replace("?", "\\w?"))
-        if model_re.match(mcu):
-            if match is None:
-                match = flash_model
-            else:
-                logger.warning(
-                    f"{match} and {flash_model} are matching flash configs"
-                )
-    if match is None:
+        model_re = re.compile(flash_model.lower().replace("?", "\\w?"))
+        if model_re.match(mcu) or flash_model.startswith(mcu):
+            matches += [flash_model]
+    if len(matches) == 0:
         raise ForgeError(f"Can't find a neat flasher config for {mcu}")
+    elif len(matches) > 1:
+        logger.warning(
+            f"{mcu} matches {matches} flash configurations. Picking one"
+        )
 
-    return match
+    return matches[0]
 
 
 def swallow(exceptions, fn):
@@ -83,8 +82,8 @@ def swallow(exceptions, fn):
 
 def find_compatible_mcu(mcu):
     matching_mcu = None
-    for model in tables.stdp_supported_models:
-        if mcu.startswith(model):
+    for model in tables.supported_mcus:
+        if mcu.startswith(model.lower()):
             matching_mcu = model
             break
 
@@ -154,52 +153,52 @@ def forge_project(config: Config):
         quit(1)
 
     try:
-        if config.cube_file is None:
-            logger.error("No cube file specified")
-            exit(1)
-        with open(config.cube_file, "r") as cube_file:
-            logger.info(
-                f"Resolving peripherals and mcu model from {cube_file.name}"
-            )
-            [mcu, deps] = parse_cube_file(cube_file)
-            if not config.no_clk:
-                deps.add(Clk())
-            for dep in config.dependencies:
-                deps.add(cube_peripherals[dep])
+        if config.cube_file:
+            with open(config.cube_file, "r") as cube_file:
+                logger.info(
+                    f"Resolving peripherals and mcu model from {cube_file.name}"
+                )
+                [mcu, deps] = parse_cube_file(cube_file)
             if mcu is None:
                 raise ForgeError("No MCU model found in cube file")
-            dep_paths = set()
-            for d in deps:
-                dep_paths = dep_paths.union(
-                    set(
-                        map(
-                            lambda x: os.path.join(config.std_path, "src", x),
-                            d.sources,
-                        )
+        else:
+            [mcu, deps] = [config.mcu, set()]
+        if not config.no_clk:
+            deps.add(Clk())
+        for dep in config.dependencies:
+            deps.add(cube_peripherals[dep])
+        dep_paths = set()
+        for d in deps:
+            dep_paths = dep_paths.union(
+                set(
+                    map(
+                        lambda x: os.path.join(config.std_path, "src", x),
+                        d.sources,
                     )
                 )
-            device = find_compatible_mcu(mcu)
-            if device is None:
-                raise ForgeError(f"{mcu} is not a suported compiletarget")
-            flash_model = get_flash_model(mcu)
-            logger.info(f"Compiling as {device}, flashing as {flash_model}")
-            create_buildfile(
-                device,
-                flash_model,
-                config,
-                get_sources(config.src),
-                use_dce=use_dce,
-                peripheral_deps=list(dep_paths),
             )
-            logger.info(f"Build config written to ./{config.ninja_file}")
-            if config.debug:
-                create_openocd_file(mcu)
+        device = find_compatible_mcu(mcu)
+        if device is None:
+            raise ForgeError(f"{mcu} is not a suported compiletarget")
+        flash_model = get_flash_model(mcu)
+        logger.info(f"Compiling as {device}, flashing as {flash_model}")
+        create_buildfile(
+            device,
+            flash_model,
+            config,
+            get_sources(config.src),
+            use_dce=use_dce,
+            peripheral_deps=list(dep_paths),
+        )
+        logger.info(f"Build config written to ./{config.ninja_file}")
+        if config.debug:
+            create_openocd_file(mcu)
 
-            if config.make_ccls:
-                write_ccls_file(device, config)
+        if config.make_ccls:
+            write_ccls_file(device, config)
 
-            swallow([FileNotFoundError], shutil.rmtree)(config.output_dir)
-            quit(0)
+        swallow([FileNotFoundError], shutil.rmtree)(config.output_dir)
+        quit(0)
     except ForgeError as e:
         logger.error(e)
         quit(1)

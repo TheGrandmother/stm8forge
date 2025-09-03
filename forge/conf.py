@@ -12,8 +12,9 @@ std_path_default = "./STM8S_StdPeriph_Lib/Libraries/STM8S_StdPeriph_Driver/"
 
 @dataclass
 class Config:
-    cube_file: str
-    dependencies: List[str]
+    cube_file: str | None = None
+    mcu: str | None = None
+    dependencies: List[str] = field(default_factory=list)
     programmer: str = "stlink"
     std_path: str = os.environ.get("STM8_STDLIB_PATH", std_path_default)
     ninja_file: str = "build.ninja"
@@ -40,6 +41,8 @@ class Config:
             raise Exception(
                 f"having '{self.output_dir}' as outdir is not a good idea"
             )
+        if self.cube_file == None and self.mcu == None:
+            raise Exception(f"You must either provide cube_file or the mcu")
         pass
 
     def ignore_list(self):

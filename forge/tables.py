@@ -1,4 +1,4 @@
-stdp_supported_models = {
+supported_mcus = {
     "STM8S103",
     "STM8AF626x",
     "STM8S005",
