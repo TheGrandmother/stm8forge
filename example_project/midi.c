@@ -30,6 +30,7 @@ unsigned char get_length(message_type t) {
   }
 }
 
+//@ assigns \nothing;
 message_type parse_type_byte(unsigned char b) {
   if (b < 0x80) {
     return INVALID;
@@ -52,6 +53,8 @@ char is_channel_message(message_type t) {
   return t >= NOTE_ON && t <= PITCH_BEND;
 }
 
+/*@ lemma shift_gt0: \forall char b ; 0 <= b <= 0xff ==> 1 << (b & 0x0f)  > 0;
+*/
 
 parse_state parser(MidiMessage* m, parse_state s, unsigned char b) {
   switch (s) {
