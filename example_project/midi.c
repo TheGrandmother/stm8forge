@@ -31,8 +31,9 @@ unsigned char get_length(message_type t) {
 }
 
 message_type parse_type_byte(unsigned char b) {
-  assert(b >= 0x80, "Type byte not in range");
-  if (b <= 0xef) {
+  if (b < 0x80) {
+    return INVALID;
+  } else if (b <= 0xef) {
     return (message_type)(1 << ((b >> 4) - 8));
   } else if (b == 0xf0) {
     return SYSEX_START;
@@ -45,25 +46,45 @@ message_type parse_type_byte(unsigned char b) {
 
 /*@
  assigns \nothing;
+ ensures t >= NOTE_ON && t <= PITCH_BEND;
  */
 char is_channel_message(message_type t) {
   return t >= NOTE_ON && t <= PITCH_BEND;
 }
 
-void parse_midi(MidiMessage* m, unsigned char* buf) {
-  m->type = parse_type_byte(buf[0]);
-  m->_length = get_length(m->type);
 
-  if (m->_length >= 2) {
-    m->d1 = buf[1];
-  }
-  if (m->_length == 3) {
-    m->d2 = buf[2];
-  }
+parse_state parser(MidiMessage* m, parse_state s, unsigned char b) {
+  switch (s) {
+  case INIT:
+    m->type = parse_type_byte(b);
+    if (m->type == INVALID) {
+      m->_length = 1;
+      return COMPLETE;
+    }
 
-  if (is_channel_message(m->type)) {
-    m->ch = 1 << (buf[0] & 0x0f);
-  } else {
-    m->ch = SYSTEM;
+    if (is_channel_message(m->type)) {
+      m->ch = 1 << (b & 0x0f);
+    } else {
+      m->ch = SYSTEM;
+    }
+
+    m->_length = get_length(m->type);
+    if (m->_length == 1) {
+      return COMPLETE;
+    } else {
+      return D1;
+    }
+  case D1:
+    m->d1 = b;
+    if (m->_length == 2) {
+      return COMPLETE;
+    } else {
+      return D2;
+    }
+  case D2:
+    m->d2 = b;
+    return COMPLETE;
+  default:
+    return COMPLETE;
   }
 }

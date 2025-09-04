@@ -74,37 +74,8 @@ typedef struct {
 
 /*@
   predicate is_channel_message(unsigned char b) = b >= 0x80 && b <= 0xef;
-  predicate is_system_message(unsigned char b) = b >= 0xf7 && b <= 0xff ||  b <= 0xff;
+  predicate is_system_message(unsigned char b) = b >= 0xf7 && b <= 0xff ||  b == 0xf0;
 */
-
-/*@
-  requires b >= 0x80 && b <= 0xff;
-  assigns \nothing;
-
-  behavior channel_message:
-    assumes is_channel_message(b);
-    assigns \nothing;
-    ensures \result >= NOTE_ON && \result <= PITCH_BEND;
-
-  behavior sysex_start:
-    assumes b == 0xf0;
-    assigns \nothing;
-    ensures \result == SYSEX_START;
-
-  behavior silly_messages:
-    assumes b >= 0xf1 && b <= 0xf6;
-    assigns \nothing;
-    ensures \result == INVALID;
-
-  behavior system_message:
-    assumes is_system_message(b);
-    assigns \nothing;
-    ensures \result >= 1 << 8 && \result <= 1 << 15;
-
-  ensures isMessageType(\result);
-  disjoint behaviors;
- */
-message_type parse_type_byte(unsigned char b);
 
 
 
@@ -112,6 +83,59 @@ message_type parse_type_byte(unsigned char b);
   requires \valid(m);
   assigns *m;
 */
-void parse_midi(MidiMessage* m,unsigned char* buf);
+void parse_midi(MidiMessage* m, unsigned char* buf);
+
+typedef enum  parse_state  {
+  INIT,
+  COMPLETE,
+  D1,
+  D2,
+} parse_state;
+/*@ type invariant is_parse_state(parse_state t) =
+   t == INIT     ||
+   t == COMPLETE ||
+   t == D1       ||
+   t == D2;
+*/
+
+/*@
+  requires \valid(m);
+  requires is_parse_state(s);
+    assigns *m;
+  behavior init:
+    assumes s == INIT;
+    assigns *m;
+    assigns m->type;
+    assigns m->ch;
+    assigns m->_length;
+    ensures is_parse_state(\result);
+    ensures m->type == INVALID ==> \result == COMPLETE;
+    ensures m->type == INVALID ==> m->_length == 1;
+    ensures m->type != INVALID ==> (is_channel_message(b) ==> m->ch > 0);
+    ensures m->type != INVALID && m->_length == 1 ==> \result == COMPLETE;
+    ensures m->_length > 1 ==> \result == D1;
+
+  behavior D1:
+    assumes s == D1;
+    assumes m->type != INVALID;
+    assumes m->_length > 1;
+    assigns *m;
+    assigns m->d1;
+    ensures is_parse_state(\result);
+    ensures m->_length == 2 ==> \result == COMPLETE;
+    ensures m->_length > 2 ==> \result == D2;
+    ensures m->d1 == b;
+
+  behavior D2:
+    assumes s == D2;
+    assumes m->type != INVALID;
+    assumes m->_length > 2;
+    assigns *m;
+    assigns m->d2;
+    ensures is_parse_state(\result);
+    ensures m->_length == 3 ==> \result == COMPLETE;
+    ensures m->d2 == b;
+*/
+parse_state parser(MidiMessage* m, parse_state s, unsigned char b);
 
 #endif
