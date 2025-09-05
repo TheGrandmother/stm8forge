@@ -21,9 +21,17 @@ unsigned char get_length(message_type t) {
     return 3;
   case PROGRAM_CHANGE:
     return 2;
+  case SONG_POINTER:
+    return 3;
+  case SONG_SELECT:
+    return 3;
+  case QUARTER_FRAME:
+    return 2;
   case CH_AFTERTOUCH:
     return 2;
   case PITCH_BEND:
+    return 2;
+  case MEASURE_END:
     return 2;
   default:
     return 1;
@@ -35,13 +43,13 @@ message_type parse_type_byte(unsigned char b) {
   if (b < 0x80) {
     return INVALID;
   } else if (b <= 0xef) {
-    return (message_type)(1 << ((b >> 4) - 8));
+    return b & 0xf0;
   } else if (b == 0xf0) {
     return SYSEX_START;
-  } else if (b >= 0xf1 && b <= 0xf6) {
+  } else if (b == 0xf4 || b == 0xf5 || b == 0xfd) {
     return INVALID;
   } else {
-    return (message_type)(1 << ((b & 0xf) + 1));
+    return b;
   }
 }
 
@@ -49,12 +57,17 @@ message_type parse_type_byte(unsigned char b) {
  assigns \nothing;
  ensures t >= NOTE_ON && t <= PITCH_BEND;
  */
-char is_channel_message(message_type t) {
+int is_channel_message(message_type t) {
   return t >= NOTE_ON && t <= PITCH_BEND;
 }
 
-/*@ lemma shift_gt0: \forall char b ; 0 <= b <= 0xff ==> 1 << (b & 0x0f)  > 0;
-*/
+/*@
+ assigns \nothing;
+ ensures 0 <= b <= 0xf;
+ */
+int get_channel(unsigned char b) {
+  return (b & 0xf);
+}
 
 parse_state parser(MidiMessage* m, parse_state s, unsigned char b) {
   switch (s) {
@@ -66,9 +79,7 @@ parse_state parser(MidiMessage* m, parse_state s, unsigned char b) {
     }
 
     if (is_channel_message(m->type)) {
-      m->ch = 1 << (b & 0x0f);
-    } else {
-      m->ch = SYSTEM;
+      m->ch = get_channel(b);
     }
 
     m->_length = get_length(m->type);

@@ -2,24 +2,30 @@
 #define MIDI_H
 
 typedef enum  message_type  {
-    INVALID           = 0,      //Silly or undefined messages
-    NOTE_ON           = 1,      //0x8-
-    NOTE_OFF          = 1<<1,   //0x9-
-    AFTERTOUCH        = 1<<2,   //0xa-
-    CC                = 1<<3,   //0xb-
-    PROGRAM_CHANGE    = 1<<4,   //0xc-
-    CH_AFTERTOUCH     = 1<<5,   //0xd-
-    PITCH_BEND        = 1<<6,   //0xe-
-    //0xF1 to F6 needs to be added.
-    SYSEX_START       = 1<<7,   //0xF0
-    SYSEX_END         = 1<<8,   //0xF7
-    CLOCK             = 1<<9,   //0xF8
-    _ME               = 1<<10,  //0xF9
-    START             = 1<<11,  //0xFA
-    CONTINUE          = 1<<12,  //0xFB
-    STOP              = 1<<13,  //0xFC
-    ACTIVE_SENSE      = 1<<14,  //0xFE
-    RESET             = 1<<15,  //0xFF
+    INVALID                         = 0,
+    NOTE_ON                         = 0x80, // 2
+    NOTE_OFF                        = 0x90,// 2
+    AFTERTOUCH                      = 0xa0,// 2
+    CC                              = 0xb0,// 2
+    PROGRAM_CHANGE                  = 0xc0,// 1
+    CH_AFTERTOUCH                   = 0xd0,// 1
+    PITCH_BEND                      = 0xe0,// 2
+    SYSEX_START                     = 0xf0,
+    QUARTER_FRAME                   = 0xf1, // 1
+    SONG_POINTER                    = 0xf2, // 2
+    SONG_SELECT                     = 0xf3, // 1
+ // INVALID                         = 0xf4,
+ // INVALID                         = 0xf5,
+    TUNE_REQUEST                    = 0xf6,
+    SYSEX_END                       = 0xf7, // Not supported
+    CLOCK                           = 0xf8,
+    MEASURE_END                     = 0xf9, // 1
+    START                           = 0xfa,
+    CONTINUE                        = 0xfb,
+    STOP                            = 0xfc,
+ // INVALID                         = 0xfd,
+    ACTIVE_SENSE                    = 0xfe,
+    RESET                           = 0xff,
 } message_type ;
 /*@ type invariant isMessageType(message_type t) =
    t == INVALID       ||
@@ -33,7 +39,7 @@ typedef enum  message_type  {
    t == SYSEX_START   ||
    t == SYSEX_END     ||
    t == CLOCK         ||
-   t == _ME           ||
+   t == MEASURE_END   ||
    t == START         ||
    t == CONTINUE      ||
    t == STOP          ||
@@ -41,30 +47,8 @@ typedef enum  message_type  {
    t == RESET;
 */
 
-
-typedef enum {
-    SYSTEM = 0,
-    CH1  = 1,
-    CH2  = 1<<1,
-    CH3  = 1<<2,
-    CH4  = 1<<3,
-    CH5  = 1<<4,
-    CH6  = 1<<5,
-    CH7  = 1<<6,
-    CH8  = 1<<7,
-    CH9  = 1<<8,
-    CH10 = 1<<9,
-    CH11 = 1<<10,
-    CH12 = 1<<11,
-    CH13 = 1<<12,
-    CH14 = 1<<13,
-    CH15 = 1<<14,
-    CH16 = 1<<15,
-} midi_ch;
-
-
 typedef struct {
-    midi_ch ch;
+    unsigned char ch;
     message_type type;
     unsigned char d1;
     unsigned char d2;
@@ -111,7 +95,6 @@ typedef enum  parse_state  {
     ensures is_parse_state(\result);
     ensures m->type == INVALID ==> \result == COMPLETE;
     ensures m->type == INVALID ==> m->_length == 1;
-    ensures m->type != INVALID ==> (is_channel_message(b) ==> m->ch > 0);
     ensures m->type != INVALID && m->_length == 1 ==> \result == COMPLETE;
     ensures m->_length > 1 ==> \result == D1;
 
@@ -137,5 +120,11 @@ typedef enum  parse_state  {
     ensures m->d2 == b;
 */
 parse_state parser(MidiMessage* m, parse_state s, unsigned char b);
+
+
+
+
+
+
 
 #endif
