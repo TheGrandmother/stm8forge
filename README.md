@@ -1,6 +1,6 @@
 # stm8forge
 
-This is very WIP and not particularly.
+This is very WIP and not particularly usable by anyone but me.
 
 This project is fairly cringe.
 I do not have the skills to deliver this much features with any reasonable quality.
