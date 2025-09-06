@@ -54,7 +54,7 @@ message_type parse_type_byte(unsigned char b) {
 
 /*@
  assigns \nothing;
- ensures t >= NOTE_ON && t <= PITCH_BEND;
+ ensures \result ==> NOTE_ON <= t <= PITCH_BEND;
  */
 int is_channel_message(message_type t) {
   return t >= NOTE_ON && t <= PITCH_BEND;
@@ -62,9 +62,9 @@ int is_channel_message(message_type t) {
 
 /*@
  assigns \nothing;
- ensures 0 <= b <= 0xf;
+ ensures 0 <= \result <= 0xf;
  */
-int get_channel(unsigned char b) {
+unsigned char get_channel(unsigned char b) {
   return (b & 0xf);
 }
 

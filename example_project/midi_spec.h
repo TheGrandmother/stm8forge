@@ -41,7 +41,7 @@ typedef struct {
 
 /*@
   predicate is_channel_message(unsigned char b) = b >= 0x80 && b <= 0xef;
-  predicate is_system_message(unsigned char b) = b >= 0xf7 && b <= 0xff ||  b == 0xf0;
+  predicate is_system_message(unsigned char b) =  0xf0 <= b <= 0xff && (b != 0xf4 || b != 0xf5 || b != 0xfd);
 */
 
 
