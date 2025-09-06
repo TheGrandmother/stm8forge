@@ -4,9 +4,9 @@
 
 void TEST_parse_byte() {
   test_start();
-  assert_eq(parse_type_byte(0x80), M_NOTE_ON);
+  assert_eq(parse_type_byte(0x90), M_NOTE_ON);
   assert_eq(parse_type_byte(0xC2), M_PROGRAM_CHANGE);
-  assert_eq(parse_type_byte(0x9D), M_NOTE_OFF);
+  assert_eq(parse_type_byte(0x8D), M_NOTE_OFF);
   assert_eq(parse_type_byte(0xF2), M_SONG_POINTER);
   assert_eq(parse_type_byte(0xFC), M_STOP);
   assert_eq(parse_type_byte(0xF0), M_SYSEX_START);
@@ -26,7 +26,7 @@ void TEST_parser() {
   assert_eq(m.type, M_INVALID);
   assert_eq(s, M_COMPLETE);
 
-  unsigned char noteon[3] = {0x87, 0x12, 0x13};
+  unsigned char noteon[3] = {0x97, 0x12, 0x13};
   s = parser(&m, M_INIT, noteon[0]);
   assert_eq(m.type, M_NOTE_ON);
   assert_eq(m._length, 3);
