@@ -10,15 +10,15 @@ But it may against all odds help someone get started with the STM8 development o
 that who don't want to write everything by hand or entertain the notion of using an eclipse based IDE.
 
 
-Pull requests and sugestions are not expected but would be actually very welcome.
+Pull requests and suggestions are not expected but would be actually very welcome.
 
-This project allso contains my random attempts to learn frama-c.
+This project also contains my random attempts to learn frama-c.
 
 ### Acknowledgement
-Major thanks goes out to [the dude who wrote this blog post](https://www.codementor.io/@hbendali/getting-started-with-stm8-development-tools-on-gnu-linux-zu59yo35x). The bulk of all the installation steps in the requirements sections are pretty much copied verbatim and a lotr of what was written here was used as the base for this.
+Major thanks goes out to [the dude who wrote this blog post](https://www.codementor.io/@hbendali/getting-started-with-stm8-development-tools-on-gnu-linux-zu59yo35x). The bulk of all the installation steps in the requirements sections are pretty much copied verbatim and a lot of what was written here was used as the base for this.
 
 ## Usage
-Just run `forge project` to create the projec.
+Just run `forge project` to create the project.
 You can then flash and build and whatnot with `ninja flash`, `ninja build` etc, you get the drift.
 
 Just run `forge project` to create the project.
@@ -31,7 +31,7 @@ use `-i` to run in interactive more.
 Stm8forge provides some, at the moment, extremely rudimentary unit testing support.
 Using the unit testing framework is easy.
 
-This example should ilustrate things:
+This example should illustrate things:
 ```c
 #include <forge_test.h> // the assert macros and start/stop functions
 #include "midi.h"
@@ -131,7 +131,7 @@ ucsim_args=[]
 
 ## Features
 * Generate a ninja build file to build a project using SDCC
-* Provides a rudimentary unittesting frmework built on μCsim
+* Provides a rudimentary unit testing framework built on μCsim
 * Dead code elimination using `stm8dce`
 * Automatically resolves the used peripherals from the STM8CubeMx report file (the .txt ones) and include the appropriate files from the `STM8S_StdPeriph`library (not included)
 * Support building for debugging
@@ -154,7 +154,7 @@ Version 3.something, probably at least 10.
 Can be found wherever you get your python installations from  
 
 ### [ninja](https://ninja-build.org/)
-Used for the actuall building
+Used for the actual building
 
 ### [SDCC](https://sdcc.sourceforge.net/)
 3.5 or higher i guess.
@@ -168,8 +168,8 @@ $ sudo cp -r * /usr/local
 ```
 
 ### [μCsim](https://www.ucsim.hu/)
-Pretty baller simulator, should comes bundeled with SDCC.
-stm8forge is developed for version 0.9.4 but whatever verison comes bundled with SDCC should porlly work.
+Pretty baller simulator, should comes bundled with SDCC.
+stm8forge is developed for version 0.9.4 but whatever version comes bundled with SDCC should porlly work.
 
 ### [stm8dce](https://github.com/CTXz/STM8-DCE)
 stm8dce is used for the dead code elimination. stm8forge works without it but your artifacts will
@@ -179,7 +179,7 @@ $ pip install stm8dce
 ```
 
 ### [STM8CubeMx](https://www.st.com/en/development-tools/stm8cubemx.html)
-Whatever version is avaliable, have fun.
+Whatever version is available, have fun.
 
 ### [STM8S_StdPeriph_Lib](https://www.st.com/content/st_com/en/products/embedded-software/mcu-and-mpu-embedded-software/stm8-embedded-software/stsw-stm8069.html)
 Download the STM8S standard peripheral library which is hidden away behind some moronic license.
