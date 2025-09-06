@@ -27,6 +27,8 @@ typedef enum  message_type  {
     ACTIVE_SENSE                    = 0xfe,
     RESET                           = 0xff,
 } message_type ;
+/*@ type invariant isMessageType(message_type t) = 0 <= t <= 0xff;
+*/
 
 typedef struct {
     unsigned char ch;
@@ -36,7 +38,17 @@ typedef struct {
     unsigned char _length;
 } MidiMessage;
 
+
+/*@
+  predicate is_channel_message(unsigned char b) = b >= 0x80 && b <= 0xef;
+  predicate is_system_message(unsigned char b) = b >= 0xf7 && b <= 0xff ||  b == 0xf0;
+*/
+
+
+
+//@ assigns \nothing;
 message_type parse_type_byte(unsigned char b);
+
 
 typedef enum  parse_state  {
   INIT,
@@ -44,7 +56,50 @@ typedef enum  parse_state  {
   D1,
   D2,
 } parse_state;
+/*@ type invariant is_parse_state(parse_state t) =
+   t == INIT     ||
+   t == COMPLETE ||
+   t == D1       ||
+   t == D2;
+*/
 
+/*@
+  requires \valid(m);
+  requires s != COMPLETE;
+  requires is_parse_state(s);
+  behavior init:
+    assumes s == INIT;
+    assigns m->type;
+    assigns m->ch;
+    assigns m->_length;
+    ensures is_parse_state(\result);
+    ensures m->type == INVALID ==> \result == COMPLETE;
+    ensures m->type == INVALID ==> m->_length == 1;
+    ensures m->type != INVALID && m->_length == 1 ==> \result == COMPLETE;
+    ensures m->_length > 1 ==> \result == D1;
+
+  behavior D1:
+    assumes s == D1;
+    requires m->type != INVALID;
+    requires m->_length > 1;
+    assigns m->d1;
+    ensures is_parse_state(\result);
+    ensures m->_length == 2 ==> \result == COMPLETE;
+    ensures m->_length > 2 ==> \result == D2;
+    ensures m->d1 == b;
+
+  behavior D2:
+    assumes s == D2;
+    requires m->type != INVALID;
+    requires m->_length > 2;
+    assigns m->d2;
+    ensures is_parse_state(\result);
+    ensures m->_length == 3 ==> \result == COMPLETE;
+    ensures m->d2 == b;
+
+  disjoint behaviors;
+  complete behaviors;
+*/
 parse_state parser(MidiMessage* m, parse_state s, unsigned char b);
 
 #endif

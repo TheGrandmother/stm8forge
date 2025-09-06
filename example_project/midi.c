@@ -38,7 +38,6 @@ unsigned char get_length(message_type t) {
   }
 }
 
-//@ assigns \nothing;
 message_type parse_type_byte(unsigned char b) {
   if (b < 0x80) {
     return INVALID;
