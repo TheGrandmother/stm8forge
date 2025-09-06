@@ -11,10 +11,6 @@
   predicate is_system_message(unsigned char b) =  0xf0 <= b <= 0xff && (b != 0xf4 || b != 0xf5 || b != 0xfd);
 */
 
-//@ assigns \nothing;
-message_type parse_type_byte(unsigned char b);
-
-
 /*@ type invariant is_parser_state(parser_state t) =
    t == M_INIT     ||
    t == M_COMPLETE ||
