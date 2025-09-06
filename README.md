@@ -6,13 +6,16 @@ This project is fairly cringe.
 I do not have the skills to deliver this much features with any reasonable quality.
 I have no understanding of any of this and it is all just things that I managed to get working somehow.
 
+I make no claim that any part of this project is in any way good or that it provides any functionality that
+is not provided more reliably, effectively and elegantly from somewhere else.
+
 But it may against all odds help someone get started with the STM8 development on a POSIX system for
 that who don't want to write everything by hand or entertain the notion of using an eclipse based IDE.
 
-
 Pull requests and suggestions are not expected but would be actually very welcome.
 
-This project also contains my random attempts to learn Frama-c.
+There are very lofty and sad goal to provide statically safe peripheral libraries
+ so this project also contains my random attempts to learn Frama-c, sorry.
 
 ### Acknowledgement
 Major thanks goes out to [the dude who wrote this blog post](https://www.codementor.io/@hbendali/getting-started-with-stm8-development-tools-on-gnu-linux-zu59yo35x). The bulk of all the installation steps in the requirements sections are pretty much copied verbatim and a lot of what was written here was used as the base for this.
@@ -31,7 +34,7 @@ In your projects source location (`.` by default) you must really should add
 
 ## Testing
 
-Stm8forge provides some, at the moment, extremely rudimentary unit testing support.
+Stm8forge provides some, at the moment extremely rudimentary, unit testing support.
 Using the unit testing framework is easy.
 
 This example should illustrate things:
