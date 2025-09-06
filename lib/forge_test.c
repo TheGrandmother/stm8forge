@@ -1,6 +1,11 @@
 #include "forge_test.h"
 #include <stdio.h>
 
+/*@
+    logic integer _strlen(char str[], integer n) = (str[n] == 0) ? n : _strlen(str, n + 1);
+    logic integer strlen(char str[]) = strlen(str);
+    predicate is_string(char str[], integer max_len) = \exists integer i; 0 <= i < max_len && str[i] == '\0' ;
+*/
 
 enum test_status {
   FAILED =    0b00001,
@@ -78,10 +83,6 @@ void sif_write(char *s) {
   }
 }
 
-/*@
-    logic integer _strlen(char str[], integer n) = (str[n] == 0) ? n : _strlen(str, n + 1);
-    logic integer strlen(char str[]) = strlen(str);
-*/
 
 /*@
   requires \separated(
@@ -143,13 +144,11 @@ void test_complete(void) {
 /*@
   requires \valid(assert_message+(0..message_length));
   assigns test_status;
-  assigns assert_message[0..message_length-1];
+  assigns assert_message[0];
   ensures test_status == RUNNING;
+  ensures is_string(assert_message, message_length);
 */
-// Marks a test as started
 void test_start(void) {
-  for (unsigned char i = 0; i < message_length; i++) {
-    assert_message[i] = 0;
-  }
+  assert_message[0] = '\0';
   test_status = RUNNING;
 }

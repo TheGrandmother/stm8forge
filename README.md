@@ -12,6 +12,8 @@ that who don't want to write everything by hand or entertain the notion of using
 
 Pull requests and sugestions are not expected but would be actually very welcome.
 
+This project allso contains my random attempts to learn frama-c.
+
 ### Acknowledgement
 Major thanks goes out to [the dude who wrote this blog post](https://www.codementor.io/@hbendali/getting-started-with-stm8-development-tools-on-gnu-linux-zu59yo35x). The bulk of all the installation steps in the requirements sections are pretty much copied verbatim and a lotr of what was written here was used as the base for this.
 
