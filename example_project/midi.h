@@ -3,8 +3,8 @@
 
 typedef enum  message_type  {
     M_INVALID                         = 0,
-    M_NOTE_ON                         = 0x80, // 2
-    M_NOTE_OFF                        = 0x90,// 2
+    M_NOTE_OFF                        = 0x80, // 2
+    M_NOTE_ON                         = 0x90,// 2
     M_AFTERTOUCH                      = 0xa0,// 2
     M_CC                              = 0xb0,// 2
     M_PROGRAM_CHANGE                  = 0xc0,// 1

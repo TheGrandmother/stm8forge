@@ -83,10 +83,10 @@ void main(void)
       if (s == M_COMPLETE) {
         s = M_INIT;
         if (m.type == M_NOTE_ON) {
-          GPIO_WriteHigh(GPIOB, (GPIO_Pin_TypeDef)GPIO_PIN_5);
+          GPIO_WriteLow(GPIOB, (GPIO_Pin_TypeDef)GPIO_PIN_5);
         }
         if (m.type == M_NOTE_OFF) {
-          GPIO_WriteLow(GPIOB, (GPIO_Pin_TypeDef)GPIO_PIN_5);
+          GPIO_WriteHigh(GPIOB, (GPIO_Pin_TypeDef)GPIO_PIN_5);
         }
       }
 
