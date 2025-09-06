@@ -68,6 +68,7 @@ class Config:
             )
         if self.cube_file == None and self.mcu == None:
             raise Exception(f"You must either provide cube_file or the mcu")
+        self.std_path = os.path.expanduser(self.std_path)
         pass
 
     def ignore_list(self):
