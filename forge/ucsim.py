@@ -1,5 +1,5 @@
 import re
-from typing import Dict, Iterator
+from typing import Dict, Iterator, Any, cast
 import subprocess
 
 from forge.conf import Config
@@ -59,7 +59,7 @@ def write_cfg_file(map_path: str, config: Config):
 
     conf_json = {"symbols": {}, **stuff}
 
-    with open(config.ucsim_file, "w") as f:
+    with open(config.ucsim.file, "w") as f:
         skipped_areas = ["."]
         if (
             "_sif" in mjau["DATA"].keys()
@@ -83,7 +83,29 @@ def write_cfg_file(map_path: str, config: Config):
             for name, value in symbols.items():
                 conf_json["symbols"][name] = value
                 f.write(to_var_assignent(value, name))
-    json.dump(conf_json, open(config.ucsim_file + ".json", "w"), indent=2)
+    json.dump(conf_json, open(config.ucsim.file + ".json", "w"), indent=2)
+
+
+def build_interfaces(interfaces: dict[str, Any]):
+    options = []
+    for p in interfaces:
+        match p:
+            case "uart":
+                for n, opts in interfaces[p].items():
+                    options += f"uart={n}," + ",".join(
+                        map(
+                            lambda t: (
+                                "raw"
+                                if t[0] == "raw" and t[1]
+                                else f"{t[0]}={t[1]}"
+                            ),
+                            cast(Dict[str, str], opts).items(),
+                        )
+                    )
+
+            case _:
+                logger.warning(f"Unknown simulator peripheral: {p}")
+    return [] if len(options) == 0 else ["-S", "".join(options)]
 
 
 def launch_sim(config: Config):
@@ -97,7 +119,7 @@ def launch_sim(config: Config):
         return
 
     subprocess.run(
-        ["ninja", config.ucsim_file],
+        ["ninja", config.ucsim.file],
         check=True,
     )
     arg = [
@@ -106,15 +128,15 @@ def launch_sim(config: Config):
         "-t",
         "STM8S",
         "-C",
-        config.ucsim_file,
+        config.ucsim.file,
     ]
-    if not config.ucsim_interactive:
+    if not config.ucsim.interactive:
         arg += [
             "-Z",
-            str(config.ucsim_port),
+            str(config.ucsim.port),
         ]
-    arg += config.ucsim_args
-
+    arg += config.ucsim.args
+    arg += build_interfaces(config.ucsim.interfaces)
     logger.debug(" ".join(arg))
     try:
         subprocess.run(

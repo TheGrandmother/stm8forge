@@ -11,27 +11,27 @@
  */
 unsigned char get_length(message_type t) {
   switch (t) {
-  case NOTE_ON:
+  case M_NOTE_ON:
     return 3;
-  case NOTE_OFF:
+  case M_NOTE_OFF:
     return 3;
-  case AFTERTOUCH:
+  case M_AFTERTOUCH:
     return 3;
-  case CC:
+  case M_CC:
     return 3;
-  case PROGRAM_CHANGE:
+  case M_PROGRAM_CHANGE:
     return 2;
-  case SONG_POINTER:
+  case M_SONG_POINTER:
     return 3;
-  case SONG_SELECT:
+  case M_SONG_SELECT:
     return 3;
-  case QUARTER_FRAME:
+  case M_QUARTER_FRAME:
     return 2;
-  case CH_AFTERTOUCH:
+  case M_CH_AFTERTOUCH:
     return 2;
-  case PITCH_BEND:
+  case M_PITCH_BEND:
     return 2;
-  case MEASURE_END:
+  case M_MEASURE_END:
     return 2;
   default:
     return 1;
@@ -40,13 +40,13 @@ unsigned char get_length(message_type t) {
 
 message_type parse_type_byte(unsigned char b) {
   if (b < 0x80) {
-    return INVALID;
+    return M_INVALID;
   } else if (b <= 0xef) {
     return b & 0xf0;
   } else if (b == 0xf0) {
-    return SYSEX_START;
+    return M_SYSEX_START;
   } else if (b == 0xf4 || b == 0xf5 || b == 0xfd) {
-    return INVALID;
+    return M_INVALID;
   } else {
     return b;
   }
@@ -54,10 +54,10 @@ message_type parse_type_byte(unsigned char b) {
 
 /*@
  assigns \nothing;
- ensures \result ==> NOTE_ON <= t <= PITCH_BEND;
+ ensures \result ==> M_NOTE_ON <= t <= M_PITCH_BEND;
  */
 int is_channel_message(message_type t) {
-  return t >= NOTE_ON && t <= PITCH_BEND;
+  return t >= M_NOTE_ON && t <= M_PITCH_BEND;
 }
 
 /*@
@@ -68,13 +68,13 @@ unsigned char get_channel(unsigned char b) {
   return (b & 0xf);
 }
 
-parse_state parser(MidiMessage* m, parse_state s, unsigned char b) {
+parser_state parser(MidiMessage* m, parser_state s, unsigned char b) {
   switch (s) {
-  case INIT:
+  case M_INIT:
     m->type = parse_type_byte(b);
-    if (m->type == INVALID) {
+    if (m->type == M_INVALID) {
       m->_length = 1;
-      return COMPLETE;
+      return M_COMPLETE;
     }
 
     if (is_channel_message(m->type)) {
@@ -83,21 +83,21 @@ parse_state parser(MidiMessage* m, parse_state s, unsigned char b) {
 
     m->_length = get_length(m->type);
     if (m->_length == 1) {
-      return COMPLETE;
+      return M_COMPLETE;
     } else {
-      return D1;
+      return M_D1;
     }
-  case D1:
+  case M_D1:
     m->d1 = b;
     if (m->_length == 2) {
-      return COMPLETE;
+      return M_COMPLETE;
     } else {
-      return D2;
+      return M_D2;
     }
-  case D2:
+  case M_D2:
     m->d2 = b;
-    return COMPLETE;
+    return M_COMPLETE;
   default:
-    return COMPLETE;
+    return M_COMPLETE;
   }
 }

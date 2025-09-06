@@ -212,7 +212,7 @@ def create_buildfile(
             "phony",
             [
                 config.test_functions_file,
-                config.ucsim_file,
+                config.ucsim.file,
                 ihx_target,
             ],
         )
@@ -279,7 +279,7 @@ def create_buildfile(
         w.newline()
         w.comment("uCsim configuration file")
         w.build(
-            config.ucsim_file,
+            config.ucsim.file,
             "_make_ucsim_config",
             [
                 target("map"),

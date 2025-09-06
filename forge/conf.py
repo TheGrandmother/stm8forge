@@ -1,7 +1,7 @@
 import logging
 import tomllib
 from dataclasses import dataclass, field, fields, MISSING
-from typing import List
+from typing import List, Dict, Any
 from enum import StrEnum
 import argparse
 import os
@@ -15,7 +15,29 @@ std_path_default = "./STM8S_StdPeriph_Lib/Libraries/STM8S_StdPeriph_Driver/"
 
 
 @dataclass
+class UcsimConfig:
+    port: int = 1111
+    file: str = ".ucsim_config"
+    args: List[str] = field(default_factory=list)
+    interactive: bool = False
+    interfaces: Dict[str, Any] = field(default_factory=dict)
+
+    def ignore_list(self):
+        return [
+            self.file,
+            self.file + ".json",
+            "*_simif",
+        ]
+
+    def clean_list(self):
+        return [
+            "*_simif",
+        ]
+
+
+@dataclass
 class Config:
+    ucsim: UcsimConfig
     log_level: int = logging.INFO
     cube_file: str | None = None
     mcu: str | None = None
@@ -31,10 +53,6 @@ class Config:
     debug: bool = False
     make_ccls: bool = True
     ccls_file: str = ".ccls"
-    ucsim_port: int = 1111
-    ucsim_file: str = ".ucsim_config"
-    ucsim_args: List[str] = field(default_factory=list)
-    ucsim_interactive: bool = False
     test_functions_file: str = ".test_functions"
     forge_location: str = os.path.split(os.path.dirname(__file__))[0]
 
@@ -53,29 +71,30 @@ class Config:
 
     def ignore_list(self):
         return [
-            self.output_dir,
-            self.ninja_file,
-            self.ucsim_file,
-            self.ucsim_file + ".json",
             self.test_functions_file,
             self.ccls_file,
-            "*_simif",
-            "*_simif",
             ".ccls-cache/",
             ".ninja_log",
+            *self.ucsim.ignore_list(),
         ]
 
     def clean_list(self):
         return [
             self.output_dir,
-            self.ucsim_file,
             self.test_functions_file,
+            *self.ucsim.clean_list(),
         ]
 
 
-defaults = {
+base_default = {
     field.name: field.default
     for field in fields(Config)
+    if field.default is not MISSING
+}
+
+ucsim_default = {
+    field.name: field.default
+    for field in fields(UcsimConfig)
     if field.default is not MISSING
 }
 
@@ -117,9 +136,9 @@ ucsim_parser.add_argument(
 
 ucsim_parser.add_argument(
     "-i",
-    dest="ucsim_interactive",
+    dest="interactive",
     action="store_true",
-    default=defaults["ucsim_interactive"],
+    default=ucsim_default["interactive"],
     help="Run the simulator in interactive mode",
 )
 
@@ -134,7 +153,6 @@ parser.add_argument(
     metavar="d",
     action="store_const",
     const=True,
-    default=defaults["debug"],
     help="Build with dbg stuff",
 )
 
@@ -143,7 +161,6 @@ parser.add_argument(
     dest="no_clk",
     action="store_const",
     const=True,
-    default=defaults["no_clk"],
     help="disables inclusion of the CLK peripheral by default",
 )
 
@@ -151,7 +168,6 @@ parser.add_argument(
     "--programmer",
     dest="programmer",
     metavar="programmer",
-    default=defaults["programmer"],
     help="What st programmer to use",
 )
 
@@ -160,7 +176,6 @@ parser.add_argument(
     dest="no_dce",
     action="store_true",
     help="Disables dead code elimination",
-    default=defaults["no_dce"],
 )
 
 test_parser = subparsers.add_parser(
@@ -202,21 +217,30 @@ args = main_parser.parse_args(command_args[1:])
 command = Command(sys.argv[1])
 
 
+def override(target: object, option: str):
+    if args.__getattribute__(option) is not None:
+        target.__setattr__(option, args.__getattribute__(option))
+
+
 def load_conf(path: str = "./forge_conf.toml"):
     try:
         with open(path, "rb") as f:
             data = tomllib.load(f)
-            conf = Config(**data)
-            if command == Command.PROJECT:
-                conf.no_dce = args.no_dce
-                conf.no_clk = args.no_clk
-                conf.debug = args.debug
-                conf.programmer = args.programmer
+            ucsimConf = UcsimConfig(**data.get("ucsim", {}))
             if command == Command.SIMULATE:
-                if args.start:
-                    conf.ucsim_args += ["-g"]
-                conf.ucsim_args += tail_args
-                conf.ucsim_interactive = args.ucsim_interactive
+                if args.start is not None:
+                    ucsimConf.args += ["-g"]
+                ucsimConf.args += tail_args
+                ucsimConf.interactive = args.interactive
+                override(ucsimConf, "interactive")
+            if "ucsim" in data:
+                del data["ucsim"]
+            conf = Config(ucsim=ucsimConf, **data)
+            if command == Command.PROJECT:
+                override(conf, "no_dce")
+                override(conf, "no_clk")
+                override(conf, "debug")
+                override(conf, "programmer")
             return conf
     except FileNotFoundError:
         logger.error("No forge_conf.toml file found.")

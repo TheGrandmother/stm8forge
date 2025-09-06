@@ -1,9 +1,12 @@
-mcu="stm8s001"
+mcu="stm8s103f3"
 programmer="stlinkv2"
 std_path="/home/grandmother/Downloads/STM8S_StdPeriph_Lib/Libraries/STM8S_StdPeriph_Driver/"
+dependencies=['FLASH', 'UART1', 'TIM2', 'GPIO']
+log_level=10
 
-no_dce=false
-dependencies=[]
-ucsim_port=11111
+[ucsim]
+port=11111
 
-log_level=0
+[ucsim.interfaces.uart.1]
+iport=11112
+raw=true

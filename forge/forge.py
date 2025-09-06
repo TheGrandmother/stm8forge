@@ -15,6 +15,7 @@ from forge.ccls import write_ccls_file
 from forge.ucsim import write_cfg_file, launch_sim
 from forge.testing.test_setup import get_testcases
 from forge.testing.runner import TestRunner
+from typing import Set
 
 
 logger = logging.getLogger()
@@ -167,7 +168,7 @@ def forge_project(config: Config):
             deps.add(Clk())
         for dep in config.dependencies:
             deps.add(cube_peripherals[dep])
-        dep_paths = set()
+        dep_paths: Set[str] = set()
         for d in deps:
             dep_paths = dep_paths.union(
                 set(
@@ -218,7 +219,7 @@ def forge():
     logger.setLevel(config.log_level)
 
     ch = logging.StreamHandler()
-    ch.setLevel(logging.DEBUG)
+    ch.setLevel(config.log_level)
 
     ch.setFormatter(Formatter())
 

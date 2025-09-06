@@ -28,14 +28,13 @@ class TestRunner:
                 logger.warning("No test functions were found in this project")
             self.functions = entries[1:]  # First is always -xf
 
-        with open(config.ucsim_file + ".json") as f:
+        with open(config.ucsim.file + ".json") as f:
             self.sim_conf = json.loads(f.read())
 
         if "simif" not in self.sim_conf:
             logger.error("simlator interface not configured")
             quit(1)
 
-        self.cases = {}
         self.failures = 0
 
     def run(self, test_function):
@@ -48,10 +47,10 @@ class TestRunner:
             "-t",
             "STM8S",
             "-C",
-            self.config.ucsim_file,
+            self.config.ucsim.file,
             "-Z",
             str(port),
-            *self.config.ucsim_args,
+            *self.config.ucsim.args,
         ]
 
         instance = subprocess.Popen(
@@ -96,8 +95,8 @@ class TestRunner:
                 completed = sim.get_bit(status_addr, 2) or assert_triggered
                 if failed:
                     message = sim.get_string("_assert_message")
-                    logger.error(f"{test_function}: {message}")
                     sim.set_bit(status_addr, 0, 0)
+                    logger.error(f"{test_function}: {message}")
                 if not completed:
                     sim.go("")
 

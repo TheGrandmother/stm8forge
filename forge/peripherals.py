@@ -104,6 +104,7 @@ cube_peripherals = {
     "ADC": Adc(1),
     "ADC1": Adc(1),
     "ADC2": Adc(2),
+    "GPIO": Gpio(),
     "AWU": Awu(),
     "BEEP": Beep(),
     "CAN": Can(),
