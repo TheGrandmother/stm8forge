@@ -32,7 +32,7 @@ def parse_map_file(lines: Iterator[str]):
                 bob = re.split(r"\s+", next(lines))
                 if bob[0] == "INITIALIZER":
                     stuff["initializer"] = addr(bob[1])
-                    stuff["init_size"] = int(bob[2])
+                    stuff["init_size"] = int(bob[2], 16)
                 if bob[0] == "INITIALIZED":
                     stuff["initialized"] = addr(bob[1])
                 area = bob[0]
