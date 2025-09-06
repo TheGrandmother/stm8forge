@@ -53,6 +53,7 @@ class Config:
     debug: bool = False
     make_ccls: bool = True
     ccls_file: str = ".ccls"
+    clean: bool = False
     test_functions_file: str = ".test_functions"
     forge_location: str = os.path.split(os.path.dirname(__file__))[0]
 
@@ -86,17 +87,11 @@ class Config:
         ]
 
 
-base_default = {
-    field.name: field.default
-    for field in fields(Config)
-    if field.default is not MISSING
-}
-
-ucsim_default = {
-    field.name: field.default
-    for field in fields(UcsimConfig)
-    if field.default is not MISSING
-}
+class Command(StrEnum):
+    PROJECT = "project"
+    SIMULATE = "simulate"
+    TEST = "test"
+    FLASH = "flash"
 
 
 main_parser = argparse.ArgumentParser(
@@ -109,6 +104,18 @@ subparsers = main_parser.add_subparsers(help="subcommand help")
 ucsim_parser = subparsers.add_parser(
     "simulate",
     help="simulates the project using μCsim",
+)
+
+flash_parser = subparsers.add_parser(
+    "flash",
+    help="Flash the microcontroller",
+)
+
+flash_parser.add_argument(
+    "--clean",
+    dest="clean",
+    action="store_true",
+    help="Clean before building",
 )
 
 # Generate uccssim configuration.
@@ -138,7 +145,6 @@ ucsim_parser.add_argument(
     "-i",
     dest="interactive",
     action="store_true",
-    default=ucsim_default["interactive"],
     help="Run the simulator in interactive mode",
 )
 
@@ -154,21 +160,6 @@ parser.add_argument(
     action="store_const",
     const=True,
     help="Build with dbg stuff",
-)
-
-parser.add_argument(
-    "--no-clk",
-    dest="no_clk",
-    action="store_const",
-    const=True,
-    help="disables inclusion of the CLK peripheral by default",
-)
-
-parser.add_argument(
-    "--programmer",
-    dest="programmer",
-    metavar="programmer",
-    help="What st programmer to use",
 )
 
 parser.add_argument(
@@ -196,12 +187,6 @@ test_parser.add_argument(
 if len(sys.argv) == 1:
     print(main_parser.format_help())
     quit(1)
-
-
-class Command(StrEnum):
-    PROJECT = "project"
-    SIMULATE = "simulate"
-    TEST = "test"
 
 
 if "--" in sys.argv:
@@ -238,9 +223,9 @@ def load_conf(path: str = "./forge_conf.toml"):
             conf = Config(ucsim=ucsimConf, **data)
             if command == Command.PROJECT:
                 override(conf, "no_dce")
-                override(conf, "no_clk")
                 override(conf, "debug")
-                override(conf, "programmer")
+            if command == Command.FLASH:
+                override(conf, "clean")
             return conf
     except FileNotFoundError:
         logger.error("No forge_conf.toml file found.")

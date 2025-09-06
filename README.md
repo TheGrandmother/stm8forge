@@ -12,14 +12,14 @@ that who don't want to write everything by hand or entertain the notion of using
 
 Pull requests and suggestions are not expected but would be actually very welcome.
 
-This project also contains my random attempts to learn frama-c.
+This project also contains my random attempts to learn Frama-c.
 
 ### Acknowledgement
 Major thanks goes out to [the dude who wrote this blog post](https://www.codementor.io/@hbendali/getting-started-with-stm8-development-tools-on-gnu-linux-zu59yo35x). The bulk of all the installation steps in the requirements sections are pretty much copied verbatim and a lot of what was written here was used as the base for this.
 
 ## Usage
 Just run `forge project` to create the project.
-You can then flash and build and whatnot with `ninja flash`, `ninja build` etc, you get the drift.
+You can then flash your device with `forge flash`.
 
 Just run `forge project` to create the project.
 
@@ -120,12 +120,17 @@ no_clk=false
 # Create ccls file
 make_ccls=true
 
-
+#
+[ucsim]
 # Port for ucsim if not in interactive mode
-ucsim_port= 1111
+port=11111
 # Array of additional args passed directly to the simulator
-ucsim_args=[]
+args=[]
 
+# Configure simulator interfaces, see μCsim documenttation on the -S argument.
+[ucsim.interfaces.uart.1]
+iport=11112
+raw=true
 
 ```
 
@@ -143,8 +148,11 @@ ucsim_args=[]
 * Has lofty plans to add some frama-c integrations
 
 ## To do
+* Improve testing framework.
+* Implement property based full system model testing.
+* Generate Frama-C configs and targets.
+* Add generation of safe libraries based on mcu model.
 * Lose interest, move on to something else and never touch this again
-* Add code generation for peripherals
 
 ## Requirements
 These are the things that you pretty much have to have.

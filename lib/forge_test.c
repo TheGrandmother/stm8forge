@@ -20,9 +20,7 @@ volatile unsigned char sif;
 
 volatile enum test_status test_status = 0;
 /*@
-  global invariant exclusive_status:
-  (test_status & FAILED) ==> !(test_status & PASSED) &&
-  (test_status & PASSED) ==> !(test_status & FAILED);
+  global invariant exclusive_status: !(test_status & PASSED) || !(test_status & FAILED);
 */
 
 //@ logic integer message_length = 128;
@@ -137,9 +135,6 @@ void _test_assert(char condition, char* cond_text, int line, const char* name) {
 void test_complete(void) {
   test_status |= COMPLETE;
 }
-
-
-
 
 /*@
   requires \valid(assert_message+(0..message_length));

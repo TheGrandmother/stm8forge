@@ -116,6 +116,7 @@ def add_ignores(config: Config):
 
 
 def forge_project(config: Config):
+    logger.info(f"Forging project")
     if os.path.exists(config.ninja_file):
         logger.debug("Doing ninja clean")
         subprocess.run(["ninja", "clean"], stdout=subprocess.DEVNULL)
@@ -213,6 +214,16 @@ def forge_project(config: Config):
         swallow([FileNotFoundError], os.remove)("_" + config.ninja_file)
 
 
+def flash(config: Config):
+    intialized = os.path.exists(config.ninja_file)
+    if not intialized:
+        forge_project(config)
+    elif config.clean:
+        logger.info("Cleaning")
+        subprocess.run(["ninja", "clean"])
+    subprocess.run(["ninja", "flash"])
+
+
 def forge():
     config = load_conf()
 
@@ -235,6 +246,8 @@ def forge():
 
         case Command.PROJECT:
             forge_project(config)
+        case Command.FLASH:
+            flash(config)
         case Command.SIMULATE:
             if shutil.which("ucsim_stm8") is None:
                 logger.error("ucsim_stm8 was not found on this system")
@@ -244,7 +257,7 @@ def forge():
             else:
                 launch_sim(config)
         case _:
-            logger.error(f"{args.command} is not a valid command")
+            logger.error(f"{command} is not a valid command")
             quit(1)
 
 
