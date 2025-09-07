@@ -3,11 +3,11 @@ from forge.conf import Config
 from forge.colors import colorize
 from forge.testing.simparser import Sim
 from forge.ucsim import build_ucsim_command
-import os
 import json
 import random
 import socket
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +17,9 @@ class TestRunner:
         self.config = config
         build = subprocess.run(
             ["ninja", "test_setup"],
+        )
+        build = subprocess.run(
+            ["ninja", "build"],
         )
 
         if build.returncode != 0:
@@ -50,7 +53,6 @@ class TestRunner:
         instance = subprocess.Popen(
             command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
-        logger.debug(f"Started simulator on port {port}")
 
         host = "localhost"
 

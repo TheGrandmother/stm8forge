@@ -1,6 +1,6 @@
 import logging
 import tomllib
-from dataclasses import dataclass, field, fields, MISSING
+from dataclasses import dataclass, field
 from typing import List, Dict, Any
 from enum import StrEnum
 import argparse
@@ -48,7 +48,6 @@ class Config:
     output_dir: str = "./build"
     target: str = "main"
     src: str = "."
-    no_dce: bool = False
     no_clk: bool = False
     debug: bool = False
     make_ccls: bool = True
@@ -163,13 +162,6 @@ parser.add_argument(
     help="Build with dbg stuff",
 )
 
-parser.add_argument(
-    "--no-dce",
-    dest="no_dce",
-    action="store_true",
-    help="Disables dead code elimination",
-)
-
 test_parser = subparsers.add_parser(
     "test",
     help="launches the forge test framework",
@@ -223,7 +215,6 @@ def load_conf(path: str = "./forge_conf.toml"):
                 del data["ucsim"]
             conf = Config(ucsim=ucsimConf, **data)
             if command == Command.PROJECT:
-                override(conf, "no_dce")
                 override(conf, "debug")
             if command == Command.FLASH:
                 override(conf, "clean")

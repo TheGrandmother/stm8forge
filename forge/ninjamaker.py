@@ -50,7 +50,6 @@ def create_buildfile(
     flash_model: str,
     config: Config,
     sources: list[str],
-    use_dce=True,
     peripheral_deps: list[str] = [],
 ):
     def target(ending):
@@ -71,6 +70,7 @@ def create_buildfile(
         w.variable("outdir", output_dir)
         w.variable("flash_model", flash_model)
         w.variable("lib_path", stm8_lib_path)
+        w.variable("test_functions", config.test_functions_file)
         includes = " -I".join(
             ["", "./", os.path.join(config.std_path, "inc"), forge_lib]
         )
@@ -82,6 +82,10 @@ def create_buildfile(
         w.variable(
             "compile_directives",
             standard_flags,
+        )
+        w.variable(
+            "copy_flags",
+            "--remove-section='.debug*' --remove-section=SSEG --remove-section=INITIALIZED --remove-section=DATA",
         )
 
         ihx_target = target("ihx")
@@ -110,18 +114,15 @@ def create_buildfile(
             "$forge_command test --resolve $in",
         )
 
-        if use_dce:
-            w.rule(
-                "dce",
-                "mkdir -p $outdir/smol && "
-                + f"xargs < {config.test_functions_file} stm8dce -o $outdir/smol $lib_path $in && "
-                + "touch $outdir/.smollified",
-            )
-        else:
-            w.rule(
-                "dce",
-                "mkdir -p $outdir/smol && cp $outdir/asm/* $outdir/smol/ && touch $outdir/.smollified",
-            )
+        print_or_empty = (
+            "([ -s $test_functions ] && cat $test_functions || echo '')"
+        )
+        w.rule(
+            "dce",
+            "mkdir -p $outdir/smol && "
+            + f"({print_or_empty} | xargs stm8dce -o $outdir/smol $lib_path $in) && "
+            + "touch $outdir/.smollified",
+        )
 
         w.rule(
             "link",
@@ -130,7 +131,7 @@ def create_buildfile(
 
         w.rule(
             "ihx",
-            f"stm8-objcopy --remove-section='.debug*' --remove-section=SSEG --remove-section=INITIALIZED --remove-section=DATA $in -O ihex $out",
+            "stm8-objcopy $copy_flags $in -O ihex $out",
         )
 
         flash_cmd = f"stm8flash -c {config.programmer} -p $flash_model -w $in"
@@ -141,12 +142,17 @@ def create_buildfile(
 
         w.rule(
             "_make_ucsim_config",
-            f"$forge_command simulate --generate-conf --map $in",
+            f"$forge_command simulate --generate-conf --map $in && rm $outdir/.smollified",
         )
 
         w.rule(
             f"_clean",
             f"(rm -r {' '.join(config.clean_list())} 2> /dev/null) || true",
+        )
+
+        w.rule(
+            f"_clean_tests",
+            f"(rm -r $outdir/.smollified $outdir/smol $test_functions 2> /dev/null) || true",
         )
 
         w.rule(
@@ -196,13 +202,19 @@ def create_buildfile(
             [],
         )
 
+        w.build(
+            "clean_tests",
+            "_clean_tests",
+            [],
+        )
+
         w.newline()
         w.comment("targets")
 
         w.newline()
         w.comment("test")
         w.build(
-            ".test_functions",
+            config.test_functions_file,
             "resolve_test_functions",
             [make_target(dep, ".c", "pre") for dep in sources],
         )
@@ -211,9 +223,8 @@ def create_buildfile(
             "test_setup",
             "phony",
             [
-                config.test_functions_file,
                 config.ucsim.file,
-                ihx_target,
+                config.test_functions_file,
             ],
         )
 
@@ -232,15 +243,18 @@ def create_buildfile(
         w.build(
             "$outdir/.smollified",
             "dce",
-            [".test_functions"]
-            + [make_target(dep, ".asm", "asm") for dep in sources],
+            [make_target(dep, ".asm", "asm") for dep in sources],
         )
+
         w.newline()
         for dep in sources:
             w.build(
                 make_target(dep, ".asm", "smol"),
                 "phony",
-                ["$outdir/.smollified", make_target(dep, ".asm", "asm")],
+                [
+                    "$outdir/.smollified",
+                    make_target(dep, ".asm", "asm"),
+                ],
             )
 
         w.newline()

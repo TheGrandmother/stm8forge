@@ -135,14 +135,8 @@ def forge_project(config: Config):
     except Exception as e:
         logger.warning(f"Failed to update gitignore file: {e}")
 
-    use_dce = not config.no_dce
-    if shutil.which("stm8dce") is None and not config.no_dce:
-        logger.warning(
-            "stm8dce was not found on this system. DCE not avaliable, you shoud address this."
-        )
-        use_dce = False
-    if config.no_dce:
-        logger.warning("Dce is disabled.")
+    if shutil.which("stm8dce") is None:
+        logger.warning("stm8dce was not found on this system.")
 
     try:
         os.stat(os.path.join(config.std_path, "inc", "stm8s.h"))
@@ -189,7 +183,6 @@ def forge_project(config: Config):
             flash_model,
             config,
             get_sources(config.src),
-            use_dce=use_dce,
             peripheral_deps=list(dep_paths),
         )
         logger.info(f"Build config written to ./{config.ninja_file}")
@@ -221,6 +214,10 @@ def flash(config: Config):
     elif config.clean:
         logger.info("Cleaning")
         subprocess.run(["ninja", "clean"])
+    if os.path.exists(config.test_functions_file):
+        logger.debug("Cleaning testrun")
+        subprocess.run(["ninja", "clean_tests"])
+
     subprocess.run(["ninja", "flash"])
 
 
