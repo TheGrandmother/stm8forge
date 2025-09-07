@@ -3,7 +3,7 @@
 #define MIDI_SPEC_H
 
 
-/*@ type invariant is_message_type(message_type t) = 0x80 <= t <= 0xff || t == 0;
+/*@ type invariant is_message_type(message_type t) = 0x80 <= t <= 0xff;
 */
 
 /*@
@@ -33,6 +33,7 @@ unsigned char get_length(message_type t);
 
 /*@
  assigns \nothing;
+ ensures is_message_type(\result);
  */
 message_type parse_type_byte(unsigned char b);
 

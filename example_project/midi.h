@@ -2,7 +2,6 @@
 #define MIDI_H
 
 typedef enum  message_type  {
-    M_INVALID                         = 0,
     M_NOTE_OFF                        = 0x80, // 2
     M_NOTE_ON                         = 0x90,// 2
     M_AFTERTOUCH                      = 0xa0,// 2
@@ -14,7 +13,7 @@ typedef enum  message_type  {
     M_QUARTER_FRAME                   = 0xf1, // 1
     M_SONG_POINTER                    = 0xf2, // 2
     M_SONG_SELECT                     = 0xf3, // 1
- // INVALID                         = 0xf4,
+    M_INVALID                         = 0xf4, // reserved
  // INVALID                         = 0xf5,
     M_TUNE_REQUEST                    = 0xf6,
     M_SYSEX_END                       = 0xf7, // Not supported
