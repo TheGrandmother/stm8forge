@@ -1,8 +1,7 @@
 mcu="stm8s103f3"
 programmer="stlinkv2"
 std_path="~/Downloads/STM8S_StdPeriph_Lib/Libraries/STM8S_StdPeriph_Driver/"
-dependencies=['FLASH', 'UART1', 'TIM2', 'GPIO']
-log_level=10
+dependencies=['FLASH', 'UART1', 'TIM2', 'TIM1', 'GPIO', 'TIM4']
 
 [ucsim]
 port=11111

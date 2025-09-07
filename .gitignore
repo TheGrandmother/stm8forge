@@ -175,8 +175,6 @@ main.c
 .ucsim_config.json
 _CoqProject
 out_simif
-example_project/
-
 
 stm8s_conf.h
 stm8s_it.c

@@ -34,17 +34,19 @@ typedef struct {
     unsigned char d1;
     unsigned char d2;
     unsigned char _length;
-} MidiMessage;
+} midi_message;
+
+void init_message(midi_message* m);
 
 message_type parse_type_byte(unsigned char b);
 
 typedef enum  parser_state  {
-  M_INIT,
-  M_COMPLETE,
-  M_D1,
-  M_D2,
+  M_INIT = 0,
+  M_COMPLETE = 1,
+  M_D1 = 2,
+  M_D2 = 3,
 } parser_state;
 
-parser_state parser(MidiMessage* m, parser_state s, unsigned char b);
+parser_state parser(midi_message* m, parser_state s, unsigned char b);
 
 #endif

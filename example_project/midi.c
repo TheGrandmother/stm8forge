@@ -1,14 +1,6 @@
 #include "midi.h"
 #include "forge_test.h"
-// converts a stream into midi messages.
-// supports filtering for channel and message types
 
-
-
-/*@
-  assigns \nothing;
-  ensures 1 <= \result <=3;
- */
 unsigned char get_length(message_type t) {
   switch (t) {
   case M_NOTE_ON:
@@ -38,9 +30,6 @@ unsigned char get_length(message_type t) {
   }
 }
 
-/*@
- assigns \nothing;
- */
 message_type parse_type_byte(unsigned char b) {
   if (b < 0x80) {
     return M_INVALID;
@@ -55,40 +44,57 @@ message_type parse_type_byte(unsigned char b) {
   }
 }
 
-/*@
- assigns \nothing;
- ensures \result ==> M_NOTE_ON <= t <= M_PITCH_BEND;
- */
 int is_channel_message(message_type t) {
   return t >= M_NOTE_ON && t <= M_PITCH_BEND;
 }
 
-/*@
- assigns \nothing;
- ensures 0 <= \result <= 0xf;
- */
 unsigned char get_channel(unsigned char b) {
   return (b & 0xf);
 }
 
-parser_state parser(MidiMessage* m, parser_state s, unsigned char b) {
+
+unsigned char is_data(unsigned char b) {
+  return !(b & 0b10000000);
+}
+
+void init_message(midi_message* m) {
+  m->type = M_INVALID;
+  m->ch = 0;
+  m->_length = 1;
+  m->d1 = 0;
+  m->d2 = 0;
+}
+
+parser_state parser(midi_message* m, parser_state s, unsigned char b) {
   switch (s) {
   case M_INIT:
-    m->type = parse_type_byte(b);
-    if (m->type == M_INVALID) {
-      m->_length = 1;
-      return M_COMPLETE;
-    }
-
-    if (is_channel_message(m->type)) {
-      m->ch = get_channel(b);
-    }
-
-    m->_length = get_length(m->type);
-    if (m->_length == 1) {
-      return M_COMPLETE;
+    if (is_data(b)) {
+      // Running mode
+      if (m->type == M_INVALID || m->_length == 1) {
+        m->type = M_INVALID;
+        return M_COMPLETE;
+      } else {
+        m->d1 = b;
+        return m->_length == 2 ? M_COMPLETE : M_D2;
+      }
     } else {
-      return M_D1;
+      m->type = parse_type_byte(b);
+      if (m->type == M_INVALID) {
+        m->_length = 1;
+        return M_COMPLETE;
+      }
+
+      if (is_channel_message(m->type)) {
+        m->ch = get_channel(b);
+      }
+
+      m->_length = get_length(m->type);
+      if (m->_length == 1) {
+        return M_COMPLETE;
+      } else {
+        return M_D1;
+      }
+
     }
   case M_D1:
     m->d1 = b;
