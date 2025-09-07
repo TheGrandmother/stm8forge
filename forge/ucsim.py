@@ -1,5 +1,5 @@
 import re
-from typing import Dict, Iterator, Any, cast
+from typing import Dict, Iterator, Any, cast, List
 import subprocess
 
 from forge.conf import Config
@@ -108,6 +108,70 @@ def build_interfaces(interfaces: dict[str, Any]):
     return [] if len(options) == 0 else ["-S", "".join(options)]
 
 
+def get_cpu_setting(config: Config):
+    valid_devices = [
+        "STM8S903",
+        "STM8S003",
+        "STM8S005",
+        "STM8S007",
+        "STM8S103",
+        "STM8S105",
+        "STM8S207",
+        "STM8S208",
+        "STM8AF52",
+        "STM8AF62_12",
+        "STM8AF62_46",
+        "STM8L",
+        "STM8AL3xE",
+        "STM8AL3x8",
+        "STM8AL3x346",
+        "STM8L051",
+        "STM8L052C",
+        "STM8L052R",
+        "STM8L151x23",
+        "STM8L15x46",
+        "STM8L15x8",
+        "STM8L162",
+        "STM8L101",
+    ]
+    mcu = config.mcu
+    if mcu is None:
+        logger.warning(
+            "To use μCsim features specify the mcu model in forge_conf.toml"
+        )
+        logger.warning("Defaulting to generic STM8S")
+        return "STM8S"
+    mcu = mcu.upper()
+    if mcu.startswith("STM8S001"):
+        logger.debug(
+            f"mcu is specified as {mcu} will approximate as STM8S003 for simulator"
+        )
+        return "STM8S003"
+    for thing in valid_devices:
+        if mcu.startswith(thing):
+            return thing
+    logger.error(f"No suitable simulator CPU matches {mcu}")
+    quit(1)
+
+
+def build_ucsim_command(options: List[str], config: Config):
+    main = os.path.join(config.output_dir, "main.ihx")
+    arg = [
+        "ucsim_stm8",
+        main,
+        "-t",
+        get_cpu_setting(config),
+        "-C",
+        config.ucsim.file,
+    ]
+    return (
+        arg
+        + build_interfaces(config.ucsim.interfaces)
+        + options
+        + config.ucsim.args
+    )
+
+
 def launch_sim(config: Config):
     main = os.path.join(config.output_dir, "main.ihx")
     build = subprocess.run(
@@ -122,25 +186,17 @@ def launch_sim(config: Config):
         ["ninja", config.ucsim.file],
         check=True,
     )
-    arg = [
-        "ucsim_stm8",
-        main,
-        "-t",
-        "STM8S",
-        "-C",
-        config.ucsim.file,
-    ]
+    args = []
     if not config.ucsim.interactive:
-        arg += [
+        args += [
             "-Z",
             str(config.ucsim.port),
         ]
-    arg += config.ucsim.args
-    arg += build_interfaces(config.ucsim.interfaces)
-    logger.debug(" ".join(arg))
+    command = build_ucsim_command(args, config)
+    logger.debug(" ".join(command))
     try:
         subprocess.run(
-            arg,
+            command,
             check=True,
         )
     except KeyboardInterrupt:

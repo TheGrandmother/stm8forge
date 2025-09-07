@@ -2,6 +2,7 @@ import subprocess
 from forge.conf import Config
 from forge.colors import colorize
 from forge.testing.simparser import Sim
+from forge.ucsim import build_ucsim_command
 import os
 import json
 import random
@@ -39,22 +40,15 @@ class TestRunner:
 
     def run(self, test_function):
         port = random.randint(10000, 60000)
-        args = [
-            "ucsim_stm8",
-            os.path.join(self.config.output_dir, self.config.target + ".ihx"),
-            "-q",
-            "-P",
-            "-t",
-            "STM8S",
-            "-C",
-            self.config.ucsim.file,
-            "-Z",
-            str(port),
-            *self.config.ucsim.args,
-        ]
+
+        command = build_ucsim_command(
+            ["-q", "-P", "-Z", str(port)], self.config
+        )
+
+        logger.debug(" ".join(command))
 
         instance = subprocess.Popen(
-            args, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
         logger.debug(f"Started simulator on port {port}")
 
