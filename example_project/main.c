@@ -1,6 +1,7 @@
 #include "stm8s.h"
 #include "stm8s_conf.h"
 #include "midi.h"
+#include "main.h"
 #include "voice.h"
 #include <forge_test.h>
 #include <stdio.h>
@@ -41,13 +42,12 @@ void debug_flash() {
 static void TIM4_Config(void)
 {
 
-  // Each counter will correspond to 2ms
   TIM4_TimeBaseInit(TIM4_PRESCALER_128, 0xff);
   TIM4_ClearFlag(TIM4_FLAG_UPDATE);
   TIM4_SelectOnePulseMode(TIM4_OPMODE_REPETITIVE);
 
-  // TIM4_ITConfig(TIM4_IT_UPDATE, ENABLE);
-  // enableInterrupts();
+  TIM4_ITConfig(TIM4_IT_UPDATE, ENABLE);
+  enableInterrupts();
 
   /* Enable TIM4 */
 
@@ -66,22 +66,26 @@ void TIM2_Config(void) {
                TIM2_OCPOLARITY_HIGH
               );
 
+
   TIM2_OC3PreloadConfig(DISABLE);
   TIM2_ARRPreloadConfig(ENABLE);
 
   TIM2_Cmd(ENABLE);
 }
 
-unsigned char channel = 0;
+volatile unsigned long wall_time = 0;
+
+void increment_wall_time() {
+  wall_time += 1;
+}
 
 
-unsigned int tim1_max = 0xFFFF >> 5;
 static void TIM1_Config(void)
 {
 
   TIM1_DeInit();
 
-  TIM1_TimeBaseInit(TIM2_PRESCALER_4, TIM1_COUNTERMODE_UP, tim1_max, 0);
+  TIM1_TimeBaseInit(TIM2_PRESCALER_64, TIM1_COUNTERMODE_UP, 0xFFFF, 0);
 
   /* Channel 1, 2,3 and 4 Configuration in PWM mode */
 
@@ -89,7 +93,7 @@ static void TIM1_Config(void)
     TIM1_OCMODE_PWM2,
     TIM1_OUTPUTSTATE_ENABLE,
     TIM1_OUTPUTNSTATE_ENABLE,
-    tim1_max >> 1,
+    0,
     TIM1_OCPOLARITY_LOW,
     TIM1_OCNPOLARITY_HIGH,
     TIM1_OCIDLESTATE_SET,
@@ -147,26 +151,34 @@ void main(void)
   char buf[64] = "";
 
   sif_print("started\n");
-  uint8_t time = TIM4_GetCounter();
+  unsigned long time = TIM4_GetCounter();
   char key = 0xff;
+  unsigned char duty = 0x80;
 
 
   ar_env env;
   init_env(&env);
+  // set_gate(&env, 1);
 
+  // uint16_t c = note_to_counter(60);
+  // TIM1_SetAutoreload(c);
+  // TIM1_SetCompare3(c >> 1);
 
   while (1)
   {
 
-    if (TIM4_GetCounter() != time) {
-      unsigned char new_time = TIM4_GetCounter();
-      unsigned char dt = new_time - time;
-      if (new_time < time) {
-        dt = new_time + (0xff - time);
+    if (wall_time != time) {
+      unsigned char dt = wall_time - time;
+
+      update_env(&env, dt << 1);
+
+      TIM2_SetCompare3(0xff - (env.val >> 8));
+
+      if (env.val <= 1) {
+        TIM1_SetAutoreload(0);
+        TIM1_SetCompare3(0);
       }
-      update_env(&env, dt >> 1); // Counts in 2ms increments
-      TIM2_SetCompare3(0xff - (env.val >> 8) + 2);
-      time=new_time;
+      time = wall_time;
     }
 
     if (UART1_GetFlagStatus(UART1_FLAG_RXNE) != RESET) {
@@ -175,24 +187,43 @@ void main(void)
       UART1_ClearFlag(UART1_FLAG_RXNE);
 
       s = parser(&m, s, b);
-      // sprintf(buf, "%x\n", s);
-      // sif_print(buf);
 
       if (s == M_COMPLETE) {
         s = M_INIT;
-        if (m.ch == channel) {
-          if (m.type == M_NOTE_ON) {
-            GPIO_WriteReverse(GPIOB, (GPIO_Pin_TypeDef)GPIO_PIN_5);
-            key = m.d1;
-            set_gate(&env, 1);
-            uint16_t c = note_to_counter(m.d1);
-            TIM1_SetAutoreload(c);
-            TIM1_SetCompare3(c >> 1);
-          }
 
-          if (m.type == M_NOTE_OFF && key == m.d1) {
-            set_gate(&env, 0);
-          }
+        if (m.type == M_CC && m.d1 == 1) {
+          duty = m.d2;
+          uint16_t c = note_to_counter(key);
+          TIM1_SetAutoreload(c);
+          TIM1_SetCompare3(((unsigned long)duty*(c >> 1)) >> 7);
+        }
+
+        if (m.type == M_CC && m.d1 == 101) {
+          set_a(&env, (unsigned int)m.d2 << 3);
+        }
+
+        if (m.type == M_CC && m.d1 == 102) {
+          set_d(&env, (unsigned int)m.d2 << 3);
+        }
+
+        if (m.type == M_CC && m.d1 == 103) {
+          set_s(&env, (unsigned int)m.d2 << 9);
+        }
+
+        if (m.type == M_CC && m.d1 == 104) {
+          set_r(&env, (unsigned int)m.d2 << 3);
+        }
+
+        if (m.type == M_NOTE_ON && m.d2 != 0) {
+          key = m.d1;
+          set_gate(&env, 1);
+          uint16_t c = note_to_counter(key);
+          TIM1_SetAutoreload(c);
+          TIM1_SetCompare3(((unsigned long)duty*(c >> 1)) >> 7);
+        }
+
+        if (m.type == M_NOTE_OFF && key == m.d1) {
+          set_gate(&env, 0);
         }
       }
 

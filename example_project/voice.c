@@ -2,38 +2,73 @@
 
 
 void update_env(ar_env* e, unsigned int dt) {
-  if (e->gate) {
-    unsigned int dv = (e->a)*dt;
+  unsigned int dv;
+  switch (e->state) {
+  case A:
+    dv = (e->a)*dt;
     if (e->val >= 0xffff - dv) {
       e->val = 0xffff;
-      if (!e->hold) {
-        e->gate = 0;
-      }
+      e->state = D;
     } else {
       e->val += dv;
     }
-  } else {
-    unsigned int dv = (e->r)*dt;
+    return;
+  case D:
+    dv = (e->d)*dt;
+    if (e->s >= 0xffff - dv || e->val <= e->s + dv) {
+      e->val = e->s;
+      e->state = S;
+    } else {
+      e->val -= dv;
+    }
+    return;
+  case R:
+    dv = (e->r)*dt;
     if (e->val <= 0 + dv) {
       e->val = 0;
     } else {
       e->val -= dv;
     }
+    return;
+  case S:
+    e->val = e->s;
+    return;
   }
 }
 
 void set_gate(ar_env* e, unsigned char gate) {
   e->gate = gate;
+  if (gate) {
+    e->state = A;
+  } else {
+    e->state = R;
+  }
 }
 
 void init_env(ar_env* e) {
   e->gate = 0;
-  e->hold = 1;
+  e->state = R;
   e->val = 0;
-  e->t = 0;
-  e->a = 0xffff/5000;
-  e->r = 0xffff/10000;
+  e->a = 0xffff/50;
+  e->d = 0xffff/1000;
+  e->s = (0xffff/10)*6;
+  e->r = 0xffff/250;
 }
+
+
+void set_a(ar_env* e, ms a) {
+  e->a = 0xffff/a;
+}
+void set_d(ar_env* e, ms d) {
+  e->d = 0xffff/d;
+}
+void set_s(ar_env* e, unsigned int s) {
+  e->s = s;
+}
+void set_r(ar_env* e, ms r) {
+  e->r = 0xffff/r;
+}
+
 
 unsigned int vel_to_duty(char vel, unsigned int max) {
   if (vel == 0) {
@@ -43,23 +78,24 @@ unsigned int vel_to_duty(char vel, unsigned int max) {
 }
 
 unsigned int counters[12] = {
-  0x1ddc, // counter at middle C aka MIDI note 60/0x3c
-  0x1c2f,
-  0x1a9a,
-  0x191c,
-  0x17b3,
-  0x165e,
-  0x151d,
-  0x13ee,
-  0x12cf,
-  0x11c1,
-  0x10c2,
-  0x0fd1  // Middle B
+
+  0x3029, // counter at middle C aka MIDI note 60/0x3c
+  0x2d75,
+  0x2ae8,
+  0x2880,
+  0x263a,
+  0x2414,
+  0x220e,
+  0x2025,
+  0x1e57,
+  0x1ca3,
+  0x1b07,
+  0x1983  // Middle B
 };
 
 unsigned int note_to_counter(char note) {
   unsigned char deg = note % 12;
-  char oct = note / 12;
+  char oct = (note / 12);
   if (oct > 5) {
     return counters[deg] >> (oct-5);
   } else {

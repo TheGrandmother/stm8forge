@@ -1,6 +1,15 @@
 #ifndef VOICE_H
 #define VOICE_H
 
+typedef unsigned int ms;
+
+typedef enum state {
+  A, D, S, R
+} state;
+/*@
+  type invariant is_env_staet(state e) = e == A || e == D || e == S || e == R;
+*/
+
 typedef struct voice {
   unsigned char channel;
   char note;
@@ -9,31 +18,56 @@ typedef struct voice {
 
 typedef struct ar_env {
   char gate;
-  char hold;
-  unsigned int a; // Attack in change per ms
-  unsigned int r; // Release in change per ms
+  state state;
+  unsigned int a;
+  unsigned int d;
+  unsigned int s;
+  unsigned int r;
   unsigned int val;
-  unsigned int t; // time in ms 
 } ar_env;
+/*@
+  type invariant is_adsr_env(ar_env e) = e.a > 0 && e.d > 0 && e.r > 0;
+*/
+
+void set_a(ar_env* e, ms a);
+void set_d(ar_env* e, ms d);
+void set_s(ar_env* e, unsigned int s);
+void set_r(ar_env* e, ms r);
 
 void init_env(ar_env* e);
 
 /*@
+  requires \valid(e);
+  requires dt > 0;
+  requires is_adsr_env(*e);
   assigns e->val;
-  assigns e->time;
-  assigns e->gate;
-  behavior rising:
+  assigns e->state;
+  behavior attack:
+    assumes e->state == A;
     assumes e->gate == 1;
-    ensures e->val >= \old(e->val);
-  behavior falling:
+    ensures e->val == 0xffff ==> e->state == D;
+  behavior resease:
+    assumes e->state == R;
     assumes e->gate == 0;
     ensures e->val <= \old(e->val);
+  behavior sustain:
+    assumes e->state == S;
+    assumes e->gate == 1;
+    ensures e->val == e->s;
+  behavior decay:
+    assumes e->state == D;
+    assumes e->gate == 1;
+    assumes e->val > e->s;
+    ensures e->val <= \old(e->val);
+    ensures e->val == e->s ==> e->state == S;
 */
-void update_env(ar_env* e, unsigned int dt);
+void update_env(ar_env* e, ms dt);
 
 /*@
   requires 0 <= gate <= 1;
   assigns e->gate;
+  assigns e->state;
+  ensures (gate ==> e->state == A) && (!gate ==> e->state == R);
 */
 void set_gate(ar_env* e, unsigned char gate);
 
