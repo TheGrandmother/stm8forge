@@ -29,9 +29,6 @@ Just run `forge project` to create the project.
 You can then run `forge simulate` to configure and launch μCsim simulator on port 1111,
 use `-i` to run in interactive more.
 
-In your projects source location (`.` by default) you must really should add
-`stm8s_conf.h`, `stm8s_it.c` and `stm8s_it.h` these can be found in the examples on the STM8S_StdPeriph lib folder.
-
 ## Testing
 
 Stm8forge provides some, at the moment extremely rudimentary, unit testing support.

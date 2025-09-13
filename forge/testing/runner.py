@@ -1,7 +1,7 @@
 import subprocess
 from forge.conf import Config
 from forge.colors import colorize
-from forge.testing.simparser import Sim
+from forge.testing.simparser import Sim, SimulatorException
 from forge.ucsim import build_ucsim_command
 import json
 import random
@@ -16,8 +16,16 @@ class TestRunner:
     def __init__(self, config: Config):
         self.config = config
         build = subprocess.run(
+            ["ninja", config.test_functions_file],
+        )
+        build = subprocess.run(
             ["ninja", "test_setup"],
         )
+
+        if build.returncode != 0:
+            logger.error("Compilation failed")
+            quit(1)
+
         build = subprocess.run(
             ["ninja", "build"],
         )
@@ -117,7 +125,12 @@ class TestRunner:
         case_count = len(self.functions)
         logger.info(f"==== Found {case_count} tests ====")
         for func in self.functions:
-            self.run(func)
+            try:
+                self.run(func)
+            except SimulatorException as e:
+                logger.error(f"Failed to execute {func}: {e}")
+                self.failures = self.failures + 1
+
         s = f"==== {case_count-self.failures} of {case_count} passed ===="
         if self.failures != 0:
             logger.error(s)

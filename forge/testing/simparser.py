@@ -10,6 +10,14 @@ logger = logging.getLogger(__name__)
 chunk_size = 64
 
 
+class SimulatorException(Exception):
+    pass
+
+
+class FunctionCallError(SimulatorException):
+    pass
+
+
 @dataclass
 class State:
     simulation: str
@@ -81,7 +89,9 @@ class Sim:
 
     def go(self, addr: str):
         self.s.sendall(bytes(f"r {addr}\n", "utf-8"))
-        self.get_reply()
+        reply = self.get_reply()
+        if reply.startswith("Error"):
+            raise FunctionCallError(reply)
 
     def get_bit(self, addr: str, bit: int):
         self.s.sendall(bytes(f"d {addr}.{bit}\n", "utf-8"))
