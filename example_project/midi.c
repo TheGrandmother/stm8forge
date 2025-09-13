@@ -40,7 +40,7 @@ message_type parse_type_byte(unsigned char b) {
   } else if (b == 0xf4 || b == 0xf5 || b == 0xfd) {
     return M_INVALID;
   } else {
-    return b;
+    return (message_type)b;
   }
 }
 
@@ -51,7 +51,6 @@ int is_channel_message(message_type t) {
 unsigned char get_channel(unsigned char b) {
   return (b & 0xf);
 }
-
 
 unsigned char is_data(unsigned char b) {
   return !(b & 0b10000000);

@@ -169,7 +169,7 @@ main.c
 .in_simif
 .ninja_log
 .ucsim_config
-.frama-c/
+*/.frama-c/wp/cache/
 .ivette
 .test_functions
 .ucsim_config.json

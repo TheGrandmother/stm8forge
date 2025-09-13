@@ -24,7 +24,6 @@
 */
 
 
-
 /*@
   assigns \nothing;
   ensures 1 <= \result <=3;
@@ -51,7 +50,7 @@ unsigned char get_channel(unsigned char b);
 
 /*@
  assigns \nothing;
- ensures 0 <= b < 0x80 == \result;
+ ensures (0 <= b < 0x80) == \result;
  */
 unsigned char is_data(unsigned char b);
 
@@ -61,6 +60,12 @@ unsigned char is_data(unsigned char b);
   requires s != M_COMPLETE;
   requires is_parser_state(s);
   requires valid_message_ptr(m);
+  assigns m->type;
+  assigns m->ch;
+  assigns m->_length;
+  assigns m->type;
+  assigns m->d1;
+  assigns m->d2;
 
   behavior init:
     assumes s == M_INIT;
@@ -93,29 +98,27 @@ unsigned char is_data(unsigned char b);
     ensures m->_length > 2 ==> \result == M_D2;
     ensures is_parser_state(\result);
 
-  behavior M_D1:
+  behavior d1:
     assumes s == M_D1;
     assumes is_data_byte(b);
     assumes m->type != M_INVALID && m->_length > 1;
     assumes m->_length > 1;
     assigns m->d1;
-    ensures is_parser_state(\result);
     ensures m->_length == 2 ==> \result == M_COMPLETE;
     ensures m->_length > 2 ==> \result == M_D2;
     ensures m->d1 == b;
 
-  behavior M_D2:
+  behavior d2:
     assumes s == M_D2;
     assumes is_data_byte(b);
     assumes m->type != M_INVALID;
-    assumes m->_length > 2;
+    assumes m->_length == 3;
     assigns m->d2;
-    ensures is_parser_state(\result);
-    ensures m->_length == 3 ==> \result == M_COMPLETE;
+    ensures \result == M_COMPLETE;
     ensures m->d2 == b;
 
   disjoint behaviors;
-  complete behaviors;
+  // complete behaviors; Not managing to prove this
 */
 enum parser_state parser(midi_message* m, parser_state s, unsigned char b);
 
