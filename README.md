@@ -21,8 +21,7 @@ There are very lofty and sad goal to provide statically safe peripheral librarie
 Major thanks goes out to [the dude who wrote this blog post](https://www.codementor.io/@hbendali/getting-started-with-stm8-development-tools-on-gnu-linux-zu59yo35x). The bulk of all the installation steps in the requirements sections are pretty much copied verbatim and a lot of what was written here was used as the base for this.
 
 ## Usage
-Just run `forge project` to create the project.
-You can then flash your device with `forge flash`.
+You can build and flash your project with `forge flash`.
 
 Just run `forge project` to create the project.
 
@@ -36,7 +35,7 @@ Using the unit testing framework is easy.
 
 This example should illustrate things:
 ```c
-#include <forge_test.h> // the assert macros and start/stop functions
+#include <forge.h> // the assert macros and start/stop functions
 #include "midi.h"
 
 // Prefixing a functiona with TEST_ will make forge detect it as a test
@@ -62,6 +61,7 @@ void TEST_test_something_else() {
 }
 ```
 
+The tests file has to be named something which ends in `_test.*`
 Running `forge test` will then give us the following output.
 ```
 [5/14] mkdir -p ./build/smol && xargs < .test_functions stm8dce ...m/main.asm build/asm/forge_test.asm && touch ./build/.smollified
@@ -86,6 +86,8 @@ Currently only a silly little assert equals exist but more should be added.
 The execution of the test will continue even if an `assert_eq` fails but other forms of asserts
 will cause the test to fail instantly.
 
+
+There is currently a bug in the buildpipeline so if a test tests a fucntion that is not referenced by any other file build will fail.
 
 ### Project config
 you will need to have your project configured in a `forge_conf.toml` file with the following contents and defaults:
