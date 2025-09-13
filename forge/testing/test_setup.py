@@ -2,6 +2,7 @@ from pycparser import c_ast, CParser
 from forge.conf import Config
 from typing import List
 import re
+import os
 import logging
 
 logger = logging.getLogger(__name__)
@@ -42,13 +43,14 @@ def show_func_defs(filename):
             return []
 
 
-def get_testcases(sources, config: Config):
+def get_testcases(config: Config):
+    sources = (
+        os.path.join(config.output_dir, "pre", file)
+        for file in os.listdir(os.path.join(config.output_dir, "pre"))
+        if file.endswith("_test.c")
+    )
     names = []
     for s in sources:
         names += show_func_defs(s)
 
-    with open(config.test_functions_file, "w") as f:
-        if len(names) > 0:
-            f.write("-xf " + " ".join(names))
-        else:
-            f.write("")
+    return names

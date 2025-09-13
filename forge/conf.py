@@ -53,7 +53,6 @@ class Config:
     make_ccls: bool = True
     ccls_file: str = ".ccls"
     clean: bool = False
-    test_functions_file: str = ".test_functions"
     forge_location: str = os.path.split(os.path.dirname(__file__))[0]
 
     def __post_init__(self):
@@ -72,7 +71,6 @@ class Config:
 
     def ignore_list(self):
         return [
-            self.test_functions_file,
             self.ccls_file,
             ".ccls-cache/",
             ".ninja_log",
@@ -82,7 +80,6 @@ class Config:
     def clean_list(self):
         return [
             self.output_dir,
-            self.test_functions_file,
             *self.ucsim.clean_list(),
         ]
 

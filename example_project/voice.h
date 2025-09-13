@@ -72,16 +72,6 @@ void update_env(ar_env* e, unsigned int dt);
 void set_gate(ar_env* e, unsigned char gate);
 
 /*@
-  requires 0 <= max;
-  requires 0 <= vel;
-  requires max * vel <= 0xffff * 0xff;
-  assigns \nothing;
-  ensures 1 <= \result <= max;
-  ensures vel == 0xff ==> \result == max;
-*/
-unsigned int vel_to_duty(char vel, unsigned int max);
-
-/*@
 
   requires 0 <= vel;
   assigns \nothing;

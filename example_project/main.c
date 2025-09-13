@@ -3,7 +3,7 @@
 #include "midi.h"
 #include "main.h"
 #include "voice.h"
-#include <forge_test.h>
+#include <forge.h>
 #include <stdio.h>
 
 #define CONFIG_UNUSED_PINS_STM8S001 \

@@ -12,6 +12,7 @@ def write_ccls_file(device: str, conf: Config):
                     f"%c -mstm8 --std-sdcc99 {standard_flags}",
                     f"-D {device}",
                     "-D __SDCC",
+                    "-D UCSIM",
                     "-I./",
                     f"-I{path.join(conf.std_path, 'inc')}",
                     f"-I{stm8_lib_path}",

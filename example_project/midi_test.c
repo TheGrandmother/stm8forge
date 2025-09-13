@@ -1,5 +1,5 @@
 #include "midi.h"
-#include <forge_test.h>
+#include <forge.h>
 
 void TEST_parse_byte() {
   test_start();

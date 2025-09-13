@@ -1,16 +1,21 @@
 import os
 import sys
 
+import logging
 
+
+from enum import StrEnum
 import forge.ninja as ninja
 from forge.conf import Config
 from forge.testing.test_setup import show_func_defs
-
 
 ninja_file = "build.ninja"
 output_dir = "./build"
 
 stm8_lib_path = "/usr/local/share/sdcc/lib/stm8/stm8.lib"
+
+
+logger = logging.getLogger()
 
 
 def make_target(source, suffix, path=""):
@@ -45,7 +50,14 @@ def find_test_funcitons(sources):
         show_func_defs(make_target(source, ".c", "pre"))
 
 
+class Environment(StrEnum):
+    DEBUG = "DEBUG"
+    SIM = "SIM"
+    FLASH = "FLASH"
+
+
 def create_buildfile(
+    env: Environment,
     device: str,
     flash_model: str,
     config: Config,
@@ -58,31 +70,53 @@ def create_buildfile(
     with open(ninja_file, "w") as f:
         sources = sources + peripheral_deps + [f"./{config.target}.c"]
         forge_lib = os.path.join(config.forge_location, "lib")
+
         sources = sources + list(
             map(
                 lambda x: os.path.join(forge_lib, x),
                 filter(lambda x: x.endswith(".c"), os.listdir(forge_lib)),
             )
         )
+
+        test_files = list(
+            filter(
+                lambda s: os.path.basename(s).endswith("_test.c"),
+                sources,
+            )
+        )
+
+        if not env == Environment.SIM:
+            if len(test_files) > 0:
+                logger.info(f"Ignoring {len(test_files)} *_test.c files")
+                sources = list(set(sources) - set(test_files))
+
         w = ninja.Writer(f)
-        w.variable("forge_command", sys.argv[0])
+        w.comment(env)
+
         w.variable("device", device)
+        w.variable("forge_command", sys.argv[0])
+        w.variable(
+            "defines",
+            " -D".join(
+                ["", device, *(["UCSIM"] if env == Environment.SIM else [])]
+            ),
+        )
+
         w.variable("outdir", output_dir)
         w.variable("flash_model", flash_model)
         w.variable("lib_path", stm8_lib_path)
-        w.variable("test_functions", config.test_functions_file)
-        includes = " -I".join(
-            ["", "./", os.path.join(config.std_path, "inc"), forge_lib]
-        )
         w.variable(
             "includes",
-            includes,
+            " -I".join(
+                ["", "./", os.path.join(config.std_path, "inc"), forge_lib]
+            ),
         )
 
         w.variable(
             "compile_directives",
             standard_flags,
         )
+
         w.variable(
             "copy_flags",
             "--remove-section='.debug*' --remove-section=SSEG --remove-section=INITIALIZED --remove-section=DATA",
@@ -93,109 +127,76 @@ def create_buildfile(
 
         w.variable(
             "cflags",
-            "-mstm8 --std-sdcc99 -D $device $compile_directives",
+            "-mstm8 --std-sdcc99 $defines $compile_directives",
         )
 
         w.newline()
-        w.rule("dep", "sdcc $cflags $includes -o $outdir/ -c $in")
+        w.comment("Standard rules")
+
         w.rule("main", "sdcc $cflags $includes -o $outdir/ $in")
-        w.rule("compile_asm", "sdcc $cflags $includes -S -o $out $in")
-
-        w.rule("pre_process", "sdcc $cflags $includes -E -o $out $in")
-
-        w.rule("assemble", "sdasstm8 -plosg -ff -o $out $in")
         w.rule(
             "debug",
             "sdcc $cflags --debug --out-fmt-elf $includes -o $outdir/ $in",
         )
-
-        w.rule(
-            "resolve_test_functions",
-            "$forge_command test --resolve $in",
-        )
-
-        print_or_empty = (
-            "([ -s $test_functions ] && cat $test_functions || echo '')"
-        )
-        w.rule(
-            "dce",
-            "mkdir -p $outdir/smol && "
-            + f"({print_or_empty} | xargs stm8dce -o $outdir/smol $lib_path $in) && "
-            + "touch $outdir/.smollified",
-        )
-
+        w.rule("dep", "sdcc $cflags $includes -o $outdir/ -c $in")
+        w.rule("compile_asm", "sdcc $cflags $includes -S -o $out $in")
+        w.rule("pre_process", "sdcc $cflags $includes -E -o $out $in")
+        w.rule("assemble", "sdasstm8 -plosg -ff -o $out $in")
         w.rule(
             "link",
             f"sdcc $cflags --debug --out-fmt-elf $includes -o $outdir/main.elf $in",
         )
-
         w.rule(
             "ihx",
             "stm8-objcopy $copy_flags $in -O ihex $out",
         )
-
-        flash_cmd = f"stm8flash -c {config.programmer} -p $flash_model -w $in"
-
-        w.rule("write_to_flash", flash_cmd)
-
-        w.rule("_reforge", " ".join(sys.argv))
-
         w.rule(
-            "_make_ucsim_config",
-            f"$forge_command simulate --generate-conf --map $in && rm $outdir/.smollified",
+            "dce",
+            "mkdir -p $outdir/smol && "
+            + f"stm8dce -o $outdir/smol $lib_path $in && "
+            + "touch $outdir/.smollified",
         )
-
+        w.rule(
+            "_dirs",
+            "mkdir -p $outdir && mkdir -p $outdir/obj && mkdir -p $outdir/smol && mkdir -p $outdir/asm",
+        )
         w.rule(
             f"_clean",
             f"(rm -r {' '.join(config.clean_list())} 2> /dev/null) || true",
         )
 
-        w.rule(
-            f"_clean_tests",
-            f"(rm -r $outdir/.smollified $outdir/smol $test_functions 2> /dev/null) || true",
-        )
+        if env == Environment.FLASH:
+            w.newline()
+            w.comment("Flash rules")
+            w.rule(
+                "write_to_flash",
+                f"stm8flash -c {config.programmer} -p $flash_model -w $in",
+            )
 
-        w.rule(
-            "_dirs",
-            "mkdir -p $outdir && mkdir -p $outdir/obj && mkdir -p $outdir/smol && mkdir -p $outdir/asm",
-        )
-
-        if config.debug:
+        if env == Environment.DEBUG:
+            w.newline()
+            w.comment("Debug rules")
+            w.rule(
+                "debug",
+                "sdcc $cflags --debug --out-fmt-elf $includes -o $outdir/ $in",
+            )
             w.rule("_listen", "./serve_openocd")
 
-        w.newline()
-        w.comment("actions")
-        w.build(
-            "_flash",
-            "write_to_flash",
-            [ihx_target],
-        )
-        w.build(
-            "flash",
-            "phony",
-            ["dirs", ninja_file, ihx_target, "_flash"],
-        )
-        w.build(
-            "build",
-            "phony",
-            ["dirs", ninja_file, ihx_target],
-        )
-        w.build(
-            "debug",
-            "phony",
-            ["dirs", ninja_file, ihx_target],
-        )
-        w.build(
-            "clean",
-            "_clean",
-            [],
-        )
+        if env == Environment.SIM:
+            w.newline()
+            w.comment("Simulator rules")
+            w.rule(
+                "resolve_test_functions",
+                "$forge_command test --resolve $in",
+            )
 
-        w.build(
-            "reforge",
-            "_reforge",
-            [],
-        )
+            w.rule(
+                "_make_ucsim_config",
+                f"$forge_command simulate --generate-conf --map $in",
+            )
+
+        w.newline()
+        w.comment("Standard targets")
         w.build(
             "dirs",
             "_dirs",
@@ -203,32 +204,65 @@ def create_buildfile(
         )
 
         w.build(
-            "clean_tests",
-            "_clean_tests",
+            "clean",
+            "_clean",
             [],
         )
 
-        w.newline()
-        w.comment("targets")
-
-        w.newline()
-        w.comment("test")
         w.build(
-            config.test_functions_file,
-            "resolve_test_functions",
-            [make_target(dep, ".c", "pre") for dep in sources],
-        )
-
-        w.build(
-            "test_setup",
+            "build",
             "phony",
-            [
-                config.ucsim.file,
-                config.test_functions_file,
-            ],
+            [ihx_target],
         )
 
+        if env == Environment.FLASH:
+            w.newline()
+            w.comment("Flash targets")
+            w.build(
+                "_flash",
+                "write_to_flash",
+                [ihx_target],
+                order_only=["dirs"],
+            )
+            w.build(
+                "flash",
+                "phony",
+                ["_flash"],
+            )
+
+        if env == Environment.DEBUG:
+            w.newline()
+            w.comment("Debug targets")
+            w.build(
+                "debug",
+                "phony",
+                ["dirs", ninja_file, elf_target],
+            )
+
+        if env == Environment.SIM:
+            w.newline()
+            w.comment("Sim targets")
+            w.build(
+                "test_setup",
+                "phony",
+                [
+                    config.ucsim.file,
+                    *[make_target(dep, ".c", "pre") for dep in sources],
+                ],
+            )
+            w.build(
+                config.ucsim.file,
+                "_make_ucsim_config",
+                [
+                    target("map"),
+                ],
+            )
+
         w.newline()
+        w.newline()
+        w.newline()
+        w.comment("Dependencies")
+
         w.comment("Pre process files")
         for dep in sources:
             w.build(make_target(dep, ".c", "pre"), "pre_process", [dep])
@@ -239,31 +273,44 @@ def create_buildfile(
             w.build(make_target(dep, ".asm", "asm"), "compile_asm", [dep])
 
         w.newline()
-        w.comment("smol_asm")
+        w.comment("Smallification")
+        smalling_sources = (
+            set(sources)
+            - set(test_files)
+            - set([os.path.join(forge_lib, "forge.c")])
+        )
+        non_smalling = test_files + [os.path.join(forge_lib, "forge.c")]
+
         w.build(
-            "$outdir/.smollified",
+            "smallify",
             "dce",
-            [make_target(dep, ".asm", "asm") for dep in sources],
+            [make_target(dep, ".asm", "asm") for dep in smalling_sources],
         )
 
         w.newline()
-        for dep in sources:
+        for dep in smalling_sources:
             w.build(
                 make_target(dep, ".asm", "smol"),
                 "phony",
                 [
-                    "$outdir/.smollified",
+                    "smallify",
                     make_target(dep, ".asm", "asm"),
                 ],
             )
 
         w.newline()
-        w.comment("obj_targets")
-        for dep in sources:
+        for dep in smalling_sources:
             w.build(
                 make_target(dep, ".rel", "obj"),
                 "assemble",
                 [make_target(dep, ".asm", "smol")],
+            )
+
+        for dep in non_smalling:
+            w.build(
+                make_target(dep, ".rel", "obj"),
+                "assemble",
+                [make_target(dep, ".asm", "asm")],
             )
 
         w.newline()
@@ -288,14 +335,4 @@ def create_buildfile(
             ihx_target,
             "ihx",
             [elf_target],
-        )
-
-        w.newline()
-        w.comment("uCsim configuration file")
-        w.build(
-            config.ucsim.file,
-            "_make_ucsim_config",
-            [
-                target("map"),
-            ],
         )

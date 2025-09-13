@@ -1,5 +1,5 @@
 #include "voice.h"
-#include <forge_test.h>
+#include <forge.h>
 
 
 void TEST_env_up_and_down() {
@@ -56,13 +56,6 @@ void TEST_tops_out_and_bottoms_out() {
   test_complete();
 }
 
-void TEST_vel_to_duty() {
-  test_start();
-  assert_eq(vel_to_duty(0x00, 0xB0B), 1);
-  assert_lt(vel_to_duty(0x7f / 3, 0xB0B), 0xB0B >> 1);
-  assert_gt(vel_to_duty(2*(0x7f / 3), 0xB0B), 0xB0B >> 1);
-  test_complete();
-}
 void TEST_note_to_c() {
   test_start();
   assert_eq(note_to_counter(0x3c), 0x1ddc);

@@ -9,11 +9,10 @@ import forge.tables as tables
 from forge.colors import Formatter
 from forge.openocd import create_openocd_file
 from forge.conf import load_conf, args, command, Config, Command
-from forge.ninjamaker import create_buildfile
+from forge.ninjamaker import create_buildfile, Environment
 from forge.peripherals import parse_cube_file, Clk, cube_peripherals
 from forge.ccls import write_ccls_file
 from forge.ucsim import write_cfg_file, launch_sim
-from forge.testing.test_setup import get_testcases
 from forge.testing.runner import TestRunner
 from typing import Set
 
@@ -23,6 +22,17 @@ logger = logging.getLogger()
 
 class ForgeError(Exception):
     pass
+
+
+def get_ninja_env(config: Config) -> Environment | None:
+    if not os.path.exists(config.ninja_file):
+        return None
+    with open(config.ninja_file) as nf:
+        header = nf.readline()
+        try:
+            return Environment(header.replace("# ", "").strip())
+        except ValueError:
+            return None
 
 
 def get_sources(src):
@@ -115,7 +125,7 @@ def add_ignores(config: Config):
         pass
 
 
-def forge_project(config: Config):
+def forge_project(env: Environment, config: Config):
     logger.info(f"Forging project")
     if os.path.exists(config.ninja_file):
         logger.debug("Doing ninja clean")
@@ -123,6 +133,11 @@ def forge_project(config: Config):
     swallow([FileNotFoundError], shutil.copy)(
         config.ninja_file, "_" + config.ninja_file
     )
+
+    if env == Environment.SIM and shutil.which("ucsim_stm8") is None:
+        logger.error("ucsim_stm8 was not found on this system")
+        quit(1)
+
     if shutil.which("ninja") is None:
         logger.error("ninja was not found on this system")
         quit(1)
@@ -179,6 +194,7 @@ def forge_project(config: Config):
         flash_model = get_flash_model(mcu)
         logger.info(f"Compiling as {device}, flashing as {flash_model}")
         create_buildfile(
+            env,
             device,
             flash_model,
             config,
@@ -193,7 +209,6 @@ def forge_project(config: Config):
             write_ccls_file(device, config)
 
         swallow([FileNotFoundError], shutil.rmtree)(config.output_dir)
-        quit(0)
     except ForgeError as e:
         logger.error(e)
         quit(1)
@@ -207,17 +222,13 @@ def forge_project(config: Config):
         swallow([FileNotFoundError], os.remove)("_" + config.ninja_file)
 
 
-def flash(config: Config):
-    intialized = os.path.exists(config.ninja_file)
-    if not intialized:
-        forge_project(config)
-    elif config.clean:
-        logger.info("Cleaning")
-        subprocess.run(["ninja", "clean"])
-    if os.path.exists(config.test_functions_file):
-        logger.debug("Cleaning testrun")
-        subprocess.run(["ninja", "clean_tests"])
+def check_forge_env(desired: Environment, config: Config):
+    current_env = get_ninja_env(config)
+    if current_env != desired:
+        forge_project(desired, config)
 
+
+def flash():
     subprocess.run(["ninja", "flash"])
 
 
@@ -235,20 +246,14 @@ def forge():
 
     match command:
         case Command.TEST:
-            if isinstance(args.processed_files, list):
-                get_testcases(args.processed_files, config)
-            else:
-                runner = TestRunner(config)
-                runner.run_all()
-
-        case Command.PROJECT:
-            forge_project(config)
+            check_forge_env(Environment.SIM, config)
+            runner = TestRunner(config)
+            runner.run_all()
         case Command.FLASH:
-            flash(config)
+            check_forge_env(Environment.FLASH, config)
+            flash()
         case Command.SIMULATE:
-            if shutil.which("ucsim_stm8") is None:
-                logger.error("ucsim_stm8 was not found on this system")
-                quit(1)
+            check_forge_env(Environment.SIM, config)
             if args.generate_conf:
                 write_usim(config)
             else:

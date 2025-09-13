@@ -1,5 +1,5 @@
 #include "midi.h"
-#include "forge_test.h"
+#include <forge.h>
 
 unsigned char get_length(message_type t) {
   switch (t) {

@@ -2,6 +2,7 @@ import subprocess
 from forge.conf import Config
 from forge.colors import colorize
 from forge.testing.simparser import Sim, SimulatorException
+from forge.testing.test_setup import get_testcases
 from forge.ucsim import build_ucsim_command
 import json
 import random
@@ -16,29 +17,17 @@ class TestRunner:
     def __init__(self, config: Config):
         self.config = config
         build = subprocess.run(
-            ["ninja", config.test_functions_file],
-        )
-        build = subprocess.run(
-            ["ninja", "test_setup"],
+            ["ninja", "test_setup", "build"],
         )
 
         if build.returncode != 0:
             logger.error("Compilation failed")
             quit(1)
 
-        build = subprocess.run(
-            ["ninja", "build"],
-        )
-
-        if build.returncode != 0:
-            logger.error("Compilation failed")
-            quit(1)
-
-        with open(config.test_functions_file) as f:
-            entries = f.read().split(" ")
-            if len(entries) == 1:
-                logger.warning("No test functions were found in this project")
-            self.functions = entries[1:]  # First is always -xf
+        entries = get_testcases(config)
+        if len(entries) == 1:
+            logger.warning("No test functions were found in this project")
+        self.functions = entries
 
         with open(config.ucsim.file + ".json") as f:
             self.sim_conf = json.loads(f.read())
