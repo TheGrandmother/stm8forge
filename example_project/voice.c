@@ -56,16 +56,16 @@ void init_env(ar_env* e) {
 }
 
 
-void set_a(ar_env* e, ms a) {
+void set_a(ar_env* e, unsigned int a) {
   e->a = 0xffff/a;
 }
-void set_d(ar_env* e, ms d) {
+void set_d(ar_env* e, unsigned int d) {
   e->d = 0xffff/d;
 }
 void set_s(ar_env* e, unsigned int s) {
   e->s = s;
 }
-void set_r(ar_env* e, ms r) {
+void set_r(ar_env* e, unsigned int r) {
   e->r = 0xffff/r;
 }
 

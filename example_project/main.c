@@ -158,11 +158,6 @@ void main(void)
 
   ar_env env;
   init_env(&env);
-  // set_gate(&env, 1);
-
-  // uint16_t c = note_to_counter(60);
-  // TIM1_SetAutoreload(c);
-  // TIM1_SetCompare3(c >> 1);
 
   while (1)
   {

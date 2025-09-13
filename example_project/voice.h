@@ -1,8 +1,6 @@
 #ifndef VOICE_H
 #define VOICE_H
 
-typedef unsigned int ms;
-
 typedef enum state {
   A, D, S, R
 } state;
@@ -29,10 +27,12 @@ typedef struct ar_env {
   type invariant is_adsr_env(ar_env e) = e.a > 0 && e.d > 0 && e.r > 0;
 */
 
-void set_a(ar_env* e, ms a);
-void set_d(ar_env* e, ms d);
+// Sets attack time in ms
+void set_a(ar_env* e, unsigned int a);
+void set_d(ar_env* e, unsigned int d);
+void set_r(ar_env* e, unsigned int r);
+// Max sustain is 0xffff
 void set_s(ar_env* e, unsigned int s);
-void set_r(ar_env* e, ms r);
 
 void init_env(ar_env* e);
 
@@ -61,7 +61,7 @@ void init_env(ar_env* e);
     ensures e->val <= \old(e->val);
     ensures e->val == e->s ==> e->state == S;
 */
-void update_env(ar_env* e, ms dt);
+void update_env(ar_env* e, unsigned int dt);
 
 /*@
   requires 0 <= gate <= 1;
