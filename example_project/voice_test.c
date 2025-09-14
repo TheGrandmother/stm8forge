@@ -58,10 +58,10 @@ void TEST_tops_out_and_bottoms_out() {
 
 void TEST_note_to_c() {
   test_start();
-  assert_eq(note_to_counter(0x3c), 0x1ddc);
-  assert_eq(note_to_counter(0x3d), 0x1c2f);
-  assert_eq(note_to_counter(0x3c - 12), 0x1ddc << 1);
-  assert_eq(note_to_counter(0x3c + 12), 0x1ddc >> 1);
+  assert_eq(note_to_counter(0x3c), 0x3029);
+  assert_eq(note_to_counter(0x3d), 0x2d75);
+  assert_eq(note_to_counter(0x3c - 12), 0x3029 << 1);
+  assert_eq(note_to_counter(0x3c + 12), 0x3029 >> 1);
   test_complete();
 }
 
