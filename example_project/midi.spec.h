@@ -24,6 +24,19 @@
 */
 
 
+
+/*@
+  requires \valid(m);
+  assigns m->type;
+  assigns m->ch;
+  assigns m->_length;
+  assigns m->type;
+  assigns m->d1;
+  assigns m->d2;
+  ensures valid_message_ptr(m);
+ */
+void init_message(midi_message* m);
+
 /*@
   assigns \nothing;
   ensures 1 <= \result <=3;

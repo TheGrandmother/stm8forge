@@ -1,0 +1,255 @@
+#This is highly questionable
+#Not to be taken seriously
+alignof_aligned: 1
+alignof_double: 1
+alignof_float: 1
+alignof_fun: 1
+alignof_int: 1
+alignof_long: 1
+alignof_longdouble: 1
+alignof_longlong: 1
+alignof_ptr: 1
+alignof_short: 1
+alignof_str: 1
+bufsiz: ''
+char_is_unsigned: true
+compiler: sdcc
+cpp_arch_flags: # The schema checker will fail if this is an empty list for silly reasons
+  - ''
+custom_defs:
+    __INT_MAX__: '0x7fff'
+    __INT_TYPE__: int
+    __INT16_MAX__: '0x7fff'
+    __INT16_TYPE__: int
+    __INT32_MAX__: '0x7fffffff'
+    __INT32_TYPE__: long
+    __INT64_MAX__: 0x7fffffffffffffffL
+    __INT64_TYPE__: long long
+    __INT8_MAX__: '0x7f'
+    __INT8_TYPE__: signed char
+    __INTMAX_MAX__: 0x7fffffffffffffffL
+    __INTMAX_TYPE__: long long
+    __INTMAX_WIDTH__: '64'
+    __INTPTR_MAX__: 0x7fffU
+    __INTPTR_TYPE__: int
+    __INTPTR_WIDTH__: '16'
+    __INT_MAX__: '0x7fff'
+    __INT_WIDTH__: '16'
+    __LONG_LONG_MAX__: 0x7fffffffffffffffLL
+    __LONG_LONG_WIDTH__: '64'
+    __LONG_MAX__: 0x7fffffffL
+    __LONG_WIDTH__: '32'
+    __ULONG_MAX__: 0xffffffffU
+    __ULONG_WIDTH__: '32'
+    __PTRDIFF_MAX__: 0xffffU
+    __PTRDIFF_TYPE__: int
+    __PTRDIFF_WIDTH__: '16'
+    __SCHAR_MAX__: '0x7f'
+    __SCHAR_WIDTH__: '8'
+    __SHRT_MAX__: '0x7fff'
+    __SHRT_WIDTH__: '16'
+    __SIZEOF_DOUBLE__: '4'
+    __SIZEOF_FLOAT__: '4'
+    __SIZEOF_INT__: '2'
+    __SIZEOF_LONG_DOUBLE__: '4'
+    __SIZEOF_LONG_LONG__: '8'
+    __SIZEOF_LONG__: '4'
+    __SIZEOF_POINTER__: '2'
+    __SIZEOF_PTRDIFF_T__: '2'
+    __SIZEOF_SHORT__: '2'
+    __SIZEOF_SIZE_T__: '2'
+    __SIZE_MAX__: 0xffffU
+    __SIZE_TYPE__: unsigned int
+    __UINT16_C(c): c
+    __UINT16_MAX__: '0xffff'
+    __UINT16_TYPE__: short unsigned int
+    __UINT32_C(c): 'c ## U'
+    __UINT32_MAX__: 0xffffffffU
+    __UINT32_TYPE__: unsigned int
+    __UINT64_C(c): 'c ## UL'
+    __UINT64_MAX__: 0xffffffffffffffffUL
+    __UINT64_TYPE__: long unsigned int
+    __UINT8_C(c): c
+    __UINT8_MAX__: '0xff'
+    __UINT8_TYPE__: unsigned char
+    __UINTMAX_C(c): 'c ## UL'
+    __UINTMAX_MAX__: 0xffffU
+    __UINTMAX_TYPE__: unsigned int
+    __UINTPTR_MAX__: 0xffffU
+    __UINTPTR_TYPE__: unsigned int
+    __WINT_MAX__: 0xffffU
+    __WINT_MIN__: 0U
+    __WINT_TYPE__: unsigned int
+eof: (-1)
+errno:
+    edom: '33'
+    eilseq: '84'
+    erange: '34'
+
+    # These are fake
+    e2big: '7'
+    eacces: '13'
+    eaddrinuse: '98'
+    eaddrnotavail: '99'
+    eafnosupport: '97'
+    eagain: '11'
+    ealready: '114'
+    ebade: '52'
+    ebadf: '9'
+    ebadfd: '77'
+    ebadmsg: '74'
+    ebadr: '53'
+    ebadrqc: '56'
+    ebadslt: '57'
+    ebusy: '16'
+    ecanceled: '125'
+    echild: '10'
+    echrng: '44'
+    ecomm: '70'
+    econnaborted: '103'
+    econnrefused: '111'
+    econnreset: '104'
+    edeadlk: '35'
+    edeadlock: '35'
+    edestaddrreq: '89'
+    edquot: '122'
+    eexist: '17'
+    efault: '14'
+    efbig: '27'
+    ehostdown: '112'
+    ehostunreach: '113'
+    eidrm: '43'
+    einprogress: '115'
+    eintr: '4'
+    einval: '22'
+    eio: '5'
+    eisconn: '106'
+    eisdir: '21'
+    eisnam: '120'
+    ekeyexpired: '127'
+    ekeyrejected: '129'
+    ekeyrevoked: '128'
+    el2hlt: '51'
+    el2nsync: '45'
+    el3hlt: '46'
+    el3rst: '47'
+    elibacc: '79'
+    elibbad: '80'
+    elibexec: '83'
+    elibmax: '82'
+    elibscn: '81'
+    eloop: '40'
+    emediumtype: '124'
+    emfile: '24'
+    emlink: '31'
+    emsgsize: '90'
+    emultihop: '72'
+    enametoolong: '36'
+    enetdown: '100'
+    enetreset: '102'
+    enetunreach: '101'
+    enfile: '23'
+    enobufs: '105'
+    enodata: '61'
+    enodev: '19'
+    enoent: '2'
+    enoexec: '8'
+    enokey: '126'
+    enolck: '37'
+    enolink: '67'
+    enomedium: '123'
+    enomem: '12'
+    enomsg: '42'
+    enonet: '64'
+    enopkg: '65'
+    enoprotoopt: '92'
+    enospc: '28'
+    enosr: '63'
+    enostr: '60'
+    enosys: '38'
+    enotblk: '15'
+    enotconn: '107'
+    enotdir: '20'
+    enotempty: '39'
+    enotrecoverable: '131'
+    enotsock: '88'
+    enotsup: '95'
+    enotty: '25'
+    enotuniq: '76'
+    enxio: '6'
+    eopnotsupp: '95'
+    eoverflow: '75'
+    eownerdead: '130'
+    eperm: '1'
+    epfnosupport: '96'
+    epipe: '32'
+    eproto: '71'
+    eprotonosupport: '93'
+    eprototype: '91'
+    eremchg: '78'
+    eremote: '66'
+    eremoteio: '121'
+    erestart: '85'
+    erofs: '30'
+    eshutdown: '108'
+    esocktnosupport: '94'
+    espipe: '29'
+    esrch: '3'
+    estale: '116'
+    estrpipe: '86'
+    etime: '62'
+    etimedout: '110'
+    etxtbsy: '26'
+    euclean: '117'
+    eunatch: '49'
+    eusers: '87'
+    ewouldblock: '11'
+    exdev: '18'
+    exfull: '54'
+
+filename_max: ''
+fopen_max: '10'
+has__builtin_va_list: false
+host_name_max: ''
+int_fast16_t: int
+int_fast32_t: long
+int_fast64_t: long long
+int_fast8_t: char
+intptr_t: int # Unsure
+l_ctermid: '1' # Not relevant
+l_tmpnam: '64' # Not relevant but neede
+little_endian: false
+machdep_name: sdcc_stm8s
+max_align_t: ''
+mb_cur_max: ((size_t)4)
+nsig: ''
+path_max: ''
+posix_c_source: ''
+ptrdiff_t: int
+rand_max: '32767'
+sig_atomic_t: unsigned int # made up
+size_t: unsigned int
+sizeof_double: 4
+sizeof_float: 4
+sizeof_fun: -1
+sizeof_int: 2
+sizeof_long: 4
+sizeof_longdouble: 4
+sizeof_longlong: 8
+sizeof_ptr: 2
+sizeof_short: 2
+sizeof_void: -1
+ssize_t: int
+time_t: int # fake
+tmp_max: ''
+tty_name_max: ''
+uint_fast16_t: unsigned int
+uint_fast32_t: unsigned long
+uint_fast64_t: unsigned long long
+uint_fast8_t: unsigned char
+uintptr_t: unsigned int
+version: 4.8.1
+wchar_t: unsigned int
+weof: 0xfffffffful
+wint_t: ''
+wordsize: ''

@@ -2,32 +2,29 @@
 
 
 void update_env(ar_env* e, unsigned int dt) {
-  unsigned int dv;
+  //@ split e->state;
   switch (e->state) {
   case A:
-    dv = (e->a)*dt;
-    if (e->val >= 0xffff - dv) {
+    if  (e->val >= 0xffffu - (long)e->a*dt) {
       e->val = 0xffff;
       e->state = D;
     } else {
-      e->val += dv;
+      e->val += e->a*dt;
     }
     return;
   case D:
-    dv = (e->d)*dt;
-    if (e->s >= 0xffff - dv || e->val <= e->s + dv) {
+    if (e->val - (long)e->d*dt <= e->s ) {
       e->val = e->s;
       e->state = S;
     } else {
-      e->val -= dv;
+      e->val -= e->d*dt;
     }
     return;
   case R:
-    dv = (e->r)*dt;
-    if (e->val <= 0 + dv) {
+    if (e->val <= (long)e->r*dt) {
       e->val = 0;
     } else {
-      e->val -= dv;
+      e->val -= e->r*dt;
     }
     return;
   case S:
@@ -46,13 +43,13 @@ void set_gate(ar_env* e, unsigned char gate) {
 }
 
 void init_env(ar_env* e) {
-  e->gate = 0;
-  e->state = R;
+  e->gate = (char)0;
   e->val = 0;
   e->a = 0xffff/50;
   e->d = 0xffff/1000;
   e->s = (0xffff/10)*6;
   e->r = 0xffff/250;
+  e->state = R;
 }
 
 
@@ -70,6 +67,9 @@ void set_r(ar_env* e, unsigned int r) {
 }
 
 
+/*@
+  assigns \nothing;
+*/
 unsigned int vel_to_duty(char vel, unsigned int max) {
   if (vel == 0) {
     return 1;
@@ -78,7 +78,6 @@ unsigned int vel_to_duty(char vel, unsigned int max) {
 }
 
 unsigned int counters[12] = {
-
   0x3029, // counter at middle C aka MIDI note 60/0x3c
   0x2d75,
   0x2ae8,
@@ -93,9 +92,9 @@ unsigned int counters[12] = {
   0x1983  // Middle B
 };
 
-unsigned int note_to_counter(char note) {
-  unsigned char deg = note % 12;
-  char oct = (note / 12);
+unsigned int note_to_counter(signed char note) {
+  char deg = note % 12;
+  signed char oct = (note / 12);
   if (oct > 5) {
     return counters[deg] >> (oct-5);
   } else {
