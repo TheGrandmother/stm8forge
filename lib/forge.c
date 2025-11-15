@@ -2,6 +2,12 @@
 #include <stdio.h>
 
 
+
+
+
+#ifdef UCSIM
+
+
 enum test_status {
   FAILED =    0b00001,
   PASSED =    0b00010,
@@ -14,6 +20,8 @@ enum test_status {
 volatile unsigned char sif;
 
 volatile enum test_status test_status = 0;
+
+volatile uint32_t rng_state;
 
 #define message_length 128
 char assert_message[message_length];
@@ -33,6 +41,14 @@ enum sif_command {
   SIFCM_READ		= 'r',	// read from input file
   SIFCM_WRITE		= 'w',	// write to output file
 };
+
+
+uint16_t rand(void)
+{
+  rng_state = ((uint32_t)rng_state * 75 % 0x10001);
+  return (uint16_t)(rng_state);
+}
+
 
 /*@
   assigns sif;
@@ -71,6 +87,7 @@ void sif_write(char *s) {
 
 
 void _assert(char condition, char* message, int line, const char* name) {
+
   if (!condition) {
     if (test_status & RUNNING) {
 
@@ -150,3 +167,10 @@ void test_start(void) {
   assert_message[0] = '\0';
   test_status = RUNNING;
 }
+
+#else
+
+//Disables unused names warnings
+#pragma disable_warning 85
+void _assert(char condition, char* message, int line, const char* name) {}
+#endif

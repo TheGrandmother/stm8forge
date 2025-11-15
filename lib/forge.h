@@ -1,8 +1,12 @@
 #ifndef FORGE_TEST_H
 #define FORGE_TEST_H
+#include <stdint.h>
 
 
 void sif_print(char *s);
+void sif_write(char *s);
+
+uint16_t rand(void);
 
 //@ assigns \nothing;
 void _assert(char condition, char* message, int line, const char* name);

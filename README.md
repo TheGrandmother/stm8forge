@@ -30,6 +30,8 @@ use `-i` to run in interactive more.
 
 ## Testing
 
+Testing is pretty broken atm
+
 Stm8forge provides some, at the moment extremely rudimentary, unit testing support.
 Using the unit testing framework is easy.
 

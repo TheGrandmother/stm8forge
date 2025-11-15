@@ -68,7 +68,7 @@ def create_buildfile(
         return os.path.join(config.output_dir, f"{config.target}.{ending}")
 
     with open(ninja_file, "w") as f:
-        sources = sources + peripheral_deps + [f"./{config.target}.c"]
+        sources = sources + peripheral_deps
         forge_lib = os.path.join(config.forge_location, "lib")
 
         sources = sources + list(
@@ -108,7 +108,12 @@ def create_buildfile(
         w.variable(
             "includes",
             " -I".join(
-                ["", "./", os.path.join(config.std_path, "inc"), forge_lib]
+                [
+                    "",
+                    config.src,
+                    os.path.join(config.std_path, "inc"),
+                    forge_lib,
+                ]
             ),
         )
 
@@ -153,7 +158,7 @@ def create_buildfile(
         w.rule(
             "dce",
             "mkdir -p $outdir/smol && "
-            + f"stm8dce -o $outdir/smol $lib_path $in && "
+            + f"stm8dce -xf $${{DCE_EXCLUDES:='_'}} -o $outdir/smol $lib_path $in && "
             + "touch $outdir/.smollified",
         )
         w.rule(
@@ -243,12 +248,9 @@ def create_buildfile(
             w.newline()
             w.comment("Sim targets")
             w.build(
-                "test_setup",
+                "pre",
                 "phony",
-                [
-                    config.ucsim.file,
-                    *[make_target(dep, ".c", "pre") for dep in sources],
-                ],
+                [make_target(dep, ".c", "pre") for dep in sources],
             )
             w.build(
                 config.ucsim.file,
@@ -276,10 +278,10 @@ def create_buildfile(
         w.comment("Smallification")
         smalling_sources = (
             set(sources)
-            - set(test_files)
-            - set([os.path.join(forge_lib, "forge.c")])
+            # - set(test_files)
+            # - set([os.path.join(forge_lib, "forge.c")])
         )
-        non_smalling = test_files + [os.path.join(forge_lib, "forge.c")]
+        non_smalling = []  # test_files + [os.path.join(forge_lib, "forge.c")]
 
         w.build(
             "smallify",

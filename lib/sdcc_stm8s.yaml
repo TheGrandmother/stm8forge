@@ -11,7 +11,7 @@ alignof_longlong: 1
 alignof_ptr: 1
 alignof_short: 1
 alignof_str: 1
-bufsiz: ''
+bufsiz: int
 char_is_unsigned: true
 compiler: sdcc
 cpp_arch_flags: # The schema checker will fail if this is an empty list for silly reasons
@@ -220,7 +220,7 @@ l_ctermid: '1' # Not relevant
 l_tmpnam: '64' # Not relevant but neede
 little_endian: false
 machdep_name: sdcc_stm8s
-max_align_t: ''
+max_align_t: int
 mb_cur_max: ((size_t)4)
 nsig: ''
 path_max: ''
@@ -238,7 +238,7 @@ sizeof_longdouble: 4
 sizeof_longlong: 8
 sizeof_ptr: 2
 sizeof_short: 2
-sizeof_void: -1
+sizeof_void: 1
 ssize_t: int
 time_t: int # fake
 tmp_max: ''
@@ -251,5 +251,5 @@ uintptr_t: unsigned int
 version: 4.8.1
 wchar_t: unsigned int
 weof: 0xfffffffful
-wint_t: ''
-wordsize: ''
+wint_t: int
+wordsize: char 

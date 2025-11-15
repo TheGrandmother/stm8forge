@@ -20,6 +20,7 @@ class UcsimConfig:
     file: str = ".ucsim_config"
     args: List[str] = field(default_factory=list)
     interactive: bool = False
+    no_build: bool = False
     interfaces: Dict[str, Any] = field(default_factory=dict)
 
     def ignore_list(self):
@@ -53,7 +54,9 @@ class Config:
     make_ccls: bool = True
     ccls_file: str = ".ccls"
     clean: bool = False
-    forge_location: str = os.path.split(os.path.dirname(__file__))[0]
+    forge_location: str = os.path.join(
+        os.path.split(os.path.dirname(__file__))[0], "forge"
+    )
 
     def __post_init__(self):
         if (
@@ -67,11 +70,14 @@ class Config:
         if self.cube_file == None and self.mcu == None:
             raise Exception(f"You must either provide cube_file or the mcu")
         self.std_path = os.path.expanduser(self.std_path)
+        self.forge_location = os.path.expanduser(self.forge_location)
         pass
 
     def ignore_list(self):
         return [
             self.ccls_file,
+            self.output_dir,
+            self.ninja_file,
             ".ccls-cache/",
             ".ninja_log",
             *self.ucsim.ignore_list(),
@@ -89,6 +95,7 @@ class Command(StrEnum):
     SIMULATE = "simulate"
     TEST = "test"
     FLASH = "flash"
+    CLEAN = "clean"
 
 
 main_parser = argparse.ArgumentParser(
@@ -96,7 +103,28 @@ main_parser = argparse.ArgumentParser(
     description="Generates build files and stuff for SDCC based STM8 projects",
 )
 
+main_parser.add_argument(
+    "--verbose",
+    action="store_const",
+    dest="log_level",
+    const=0,
+    help="Debug output",
+)
+
+main_parser.add_argument(
+    "--clean",
+    dest="clean",
+    action="store_true",
+    help="Clean before command",
+)
+
+
 subparsers = main_parser.add_subparsers(help="subcommand help")
+
+subparsers.add_parser(
+    "clean",
+    help="clean project",
+)
 
 ucsim_parser = subparsers.add_parser(
     "simulate",
@@ -106,13 +134,6 @@ ucsim_parser = subparsers.add_parser(
 flash_parser = subparsers.add_parser(
     "flash",
     help="Flash the microcontroller",
-)
-
-flash_parser.add_argument(
-    "--clean",
-    dest="clean",
-    action="store_true",
-    help="Clean before building",
 )
 
 # Generate uccssim configuration.
@@ -130,6 +151,16 @@ ucsim_parser.add_argument(
     type=str,
     help=argparse.SUPPRESS,
 )
+
+
+# Map for sim generation.
+ucsim_parser.add_argument(
+    "--no-build",
+    dest="no_build",
+    action="store_true",
+    help="Omitts building",
+)
+
 
 ucsim_parser.add_argument(
     "--start",
@@ -189,12 +220,17 @@ else:
 args = main_parser.parse_args(command_args[1:])
 
 # this is horrible
-command = Command(sys.argv[1])
+command = Command(
+    list(filter(lambda x: not x.startswith("-"), sys.argv[1:]))[0]
+)
 
 
 def override(target: object, option: str):
-    if args.__getattribute__(option) is not None:
-        target.__setattr__(option, args.__getattribute__(option))
+    try:
+        if args.__getattribute__(option) is not None:
+            target.__setattr__(option, args.__getattribute__(option))
+    except AttributeError:
+        pass
 
 
 def load_conf(path: str = "./forge_conf.toml"):
@@ -211,10 +247,10 @@ def load_conf(path: str = "./forge_conf.toml"):
             if "ucsim" in data:
                 del data["ucsim"]
             conf = Config(ucsim=ucsimConf, **data)
-            if command == Command.PROJECT:
+            if command == Command.TEST:
                 override(conf, "debug")
-            if command == Command.FLASH:
-                override(conf, "clean")
+            override(conf, "clean")
+            override(conf, "log_level")
             return conf
     except FileNotFoundError:
         logger.error("No forge_conf.toml file found.")

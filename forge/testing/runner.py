@@ -17,7 +17,7 @@ class TestRunner:
     def __init__(self, config: Config):
         self.config = config
         build = subprocess.run(
-            ["ninja", "test_setup", "build"],
+            ["ninja", "pre"],
         )
 
         if build.returncode != 0:
@@ -28,6 +28,11 @@ class TestRunner:
         if len(entries) == 1:
             logger.warning("No test functions were found in this project")
         self.functions = entries
+
+        build = subprocess.run(
+            ["ninja", config.ucsim.file, "build"],
+            env=os.environ | {"DCE_EXCLUDES": " ".join(self.functions)},
+        )
 
         with open(config.ucsim.file + ".json") as f:
             self.sim_conf = json.loads(f.read())
@@ -55,6 +60,7 @@ class TestRunner:
 
         status_addr = "_test_status"
 
+        logger.debug("Connecting to μCsim")
         with socket.socket() as s:
             while True:
                 try:
@@ -62,6 +68,8 @@ class TestRunner:
                     break
                 except ConnectionRefusedError:
                     pass
+
+            logger.debug("Connected to simulator")
 
             while s.recv(1)[-1] != 0:
                 pass  # some non text is sent initially
@@ -72,10 +80,15 @@ class TestRunner:
                 logger.error("Simulator not in stopped state")
                 quit(1)
 
+            logger.debug("Fetching initial data")
             initial_data = sim.get_bytes(
                 self.sim_conf["initializer"], self.sim_conf["init_size"]
             )
+            logger.debug(f"Got {len(initial_data)} bytes to init")
+
             sim.set_bytes(self.sim_conf["initialized"], initial_data)
+            logger.debug(f"Initialization completed")
+
             sim.execute(f"b rom w {status_addr}")
             sim.go(test_function)
             completed = False

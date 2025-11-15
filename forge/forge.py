@@ -46,7 +46,6 @@ def get_sources(src):
         if file.endswith(".c"):
             if file == "main.c":
                 has_main = True
-                continue
             if file == "stm8s_it.c":
                 has_it_c = True
             sources.append(os.path.join(src, file))
@@ -244,7 +243,14 @@ def forge():
 
     logger.addHandler(ch)
 
+    if config.clean:
+        if os.path.exists(config.ninja_file):
+            subprocess.run(["ninja", "clean"])
+            os.unlink(config.ninja_file)
+
     match command:
+        case Command.CLEAN:
+            subprocess.run(["ninja", "clean"])
         case Command.TEST:
             check_forge_env(Environment.SIM, config)
             runner = TestRunner(config)

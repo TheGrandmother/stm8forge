@@ -173,14 +173,14 @@ def build_ucsim_command(options: List[str], config: Config):
 
 
 def launch_sim(config: Config):
-    main = os.path.join(config.output_dir, "main.ihx")
-    build = subprocess.run(
-        ["ninja", main],
-    )
+    if not config.ucsim.no_build:
+        build = subprocess.run(
+            ["ninja", "build"],
+        )
 
-    if build.returncode != 0:
-        logger.error("compilation failed")
-        return
+        if build.returncode != 0:
+            logger.error("compilation failed")
+            return
 
     subprocess.run(
         ["ninja", config.ucsim.file],
