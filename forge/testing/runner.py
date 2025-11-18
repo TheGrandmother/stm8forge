@@ -21,7 +21,7 @@ class TestRunner:
         )
 
         if build.returncode != 0:
-            logger.error("Compilation failed")
+            logger.error("Pre proccessing failed")
             quit(1)
 
         entries = get_testcases(config)
@@ -33,6 +33,10 @@ class TestRunner:
             ["ninja", config.ucsim.file, "build"],
             env=os.environ | {"DCE_EXCLUDES": " ".join(self.functions)},
         )
+
+        if build.returncode != 0:
+            logger.error("Compilation failed")
+            quit(1)
 
         with open(config.ucsim.file + ".json") as f:
             self.sim_conf = json.loads(f.read())

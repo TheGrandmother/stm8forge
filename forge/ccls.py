@@ -9,7 +9,7 @@ def write_ccls_file(device: str, conf: Config):
             "\n".join(
                 [
                     "sdcc",
-                    f"%c -mstm8 --std-sdcc99 {standard_flags}",
+                    f"%c -mstm8 --std-sdcc99 {standard_flags} -funsigned-char",
                     f"-D {device}",
                     "-D __SDCC",
                     "-D UCSIM",

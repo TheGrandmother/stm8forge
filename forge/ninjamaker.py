@@ -41,7 +41,7 @@ def gen_smol_asm_target(dep):
 standard_flags = (
     "--stack-auto --fverbose-asm --float-reent "
     + "--no-peep --all-callee-saves --opt-code-size "
-    + "--disable-warning 283"
+    + "--disable-warning 283 "
 )
 
 
