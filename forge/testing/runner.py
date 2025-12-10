@@ -50,9 +50,7 @@ class TestRunner:
     def run(self, test_function):
         port = random.randint(10000, 60000)
 
-        command = build_ucsim_command(
-            ["-q", "-P", "-Z", str(port)], self.config
-        )
+        command = build_ucsim_command(["-q", "-P", "-Z", str(port)], self.config)
 
         logger.debug(" ".join(command))
 
@@ -112,16 +110,18 @@ class TestRunner:
 
             if case_failed:
                 self.failures = self.failures + 1
-                if assert_triggered:
-                    logger.error(
-                        f"{test_function}: Failed by assert violation"
-                    )
-                else:
-                    logger.error(f"{test_function}: Some tests failed")
+                logger.error(f"{test_function}: Some assertions failed")
+                try:
+                    with open(self.sim_conf["simif"]["out"]) as f:
+                        content = f.read()
+                        if content != "":
+                            logger.info(f"{test_function}: dumping sif file content")
+                            logger.warning(f"{test_function}:\n" + content)
+                except FileNotFoundError:
+                    pass
+
             else:
-                logger.info(
-                    f"{test_function}: {colorize('All tests passed')} "
-                )
+                logger.info(f"{test_function}: {colorize('All tests passed')} ")
 
             sim.kill()
             while instance.poll() is None:
