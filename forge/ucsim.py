@@ -1,11 +1,12 @@
-import re
-from typing import Dict, Iterator, Any, cast, List
-import subprocess
-
-from forge.conf import Config
-import os
 import json
 import logging
+import os
+import random
+import re
+import subprocess
+from typing import Any, Dict, Iterator, List, Tuple, cast
+
+from forge.conf import Config
 
 area_header = re.compile(r"Area\s+Addr.*")
 value_header = r"\s+Value\s+Global.*"
@@ -61,13 +62,8 @@ def write_cfg_file(map_path: str, config: Config):
 
     with open(config.ucsim.file, "w") as f:
         skipped_areas = ["."]
-        if (
-            "_sif" in mjau["DATA"].keys()
-            or "_sif" in mjau["INITIALIZED"].keys()
-        ):
-            sif_addr = mjau["DATA"].get(
-                "_sif", mjau["INITIALIZED"].get("_sif", None)
-            )
+        if "_sif" in mjau["DATA"].keys() or "_sif" in mjau["INITIALIZED"].keys():
+            sif_addr = mjau["DATA"].get("_sif", mjau["INITIALIZED"].get("_sif", None))
             f.write(f"set hw simif rom {sif_addr}\n")
             f.write(f'set hw simif fin "in_simif"\n')
             f.write(f'set hw simif fout "out_simif"\n')
@@ -95,9 +91,7 @@ def build_interfaces(interfaces: dict[str, Any]):
                     options += f"uart={n}," + ",".join(
                         map(
                             lambda t: (
-                                "raw"
-                                if t[0] == "raw" and t[1]
-                                else f"{t[0]}={t[1]}"
+                                "raw" if t[0] == "raw" and t[1] else f"{t[0]}={t[1]}"
                             ),
                             cast(Dict[str, str], opts).items(),
                         )
@@ -136,9 +130,7 @@ def get_cpu_setting(config: Config):
     ]
     mcu = config.mcu
     if mcu is None:
-        logger.warning(
-            "To use μCsim features specify the mcu model in forge_conf.toml"
-        )
+        logger.warning("To use μCsim features specify the mcu model in forge_conf.toml")
         logger.warning("Defaulting to generic STM8S")
         return "STM8S"
     mcu = mcu.upper()
@@ -164,12 +156,25 @@ def build_ucsim_command(options: List[str], config: Config):
         "-C",
         config.ucsim.file,
     ]
-    return (
-        arg
-        + build_interfaces(config.ucsim.interfaces)
-        + options
-        + config.ucsim.args
-    )
+    return arg + build_interfaces(config.ucsim.interfaces) + options + config.ucsim.args
+
+
+def launch_headless(config: Config, build=True) -> Tuple[subprocess.Popen[bytes], int]:
+    if build:
+        subprocess.run(
+            ["ninja", "build", config.ucsim.file],
+            stdout=subprocess.DEVNULL,
+            check=True,
+        )
+
+    port = random.randint(10000, 60000)
+
+    command = build_ucsim_command(["-q", "-P", "-Z", str(port)], config)
+
+    logger.debug(" ".join(command))
+
+    instance = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    return instance, port
 
 
 def launch_sim(config: Config):

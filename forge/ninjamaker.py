@@ -19,9 +19,7 @@ logger = logging.getLogger()
 
 
 def make_target(source, suffix, path=""):
-    return os.path.join(
-        output_dir, path, source.split("/")[-1].replace(".c", suffix)
-    )
+    return os.path.join(output_dir, path, source.split("/")[-1].replace(".c", suffix))
 
 
 def gen_rel_target(dep):
@@ -33,9 +31,7 @@ def gen_asm_target(dep):
 
 
 def gen_smol_asm_target(dep):
-    return os.path.join(
-        output_dir, "smol", dep.split("/")[-1].replace(".c", ".asm")
-    )
+    return os.path.join(output_dir, "smol", dep.split("/")[-1].replace(".c", ".asm"))
 
 
 standard_flags = (
@@ -97,9 +93,7 @@ def create_buildfile(
         w.variable("forge_command", sys.argv[0])
         w.variable(
             "defines",
-            " -D".join(
-                ["", device, *(["UCSIM"] if env == Environment.SIM else [])]
-            ),
+            " -D".join(["", device, *(["UCSIM"] if env == Environment.SIM else [])]),
         )
 
         w.variable("outdir", output_dir)
@@ -156,12 +150,6 @@ def create_buildfile(
             "stm8-objcopy $copy_flags $in -O ihex $out",
         )
         w.rule(
-            "dce",
-            "mkdir -p $outdir/smol && "
-            + f"stm8dce -xf $${{DCE_EXCLUDES:='_'}} -o $outdir/smol $lib_path $in && "
-            + "touch $outdir/.smollified",
-        )
-        w.rule(
             "_dirs",
             "mkdir -p $outdir && mkdir -p $outdir/obj && mkdir -p $outdir/smol && mkdir -p $outdir/asm",
         )
@@ -176,6 +164,12 @@ def create_buildfile(
             w.rule(
                 "write_to_flash",
                 f"stm8flash -c {config.programmer} -p $flash_model -w $in",
+            )
+            w.rule(
+                "dce",
+                "mkdir -p $outdir/smol && "
+                + f"stm8dce -o $outdir/smol $lib_path $in && "
+                + "touch $outdir/.smollified",
             )
 
         if env == Environment.DEBUG:
@@ -198,6 +192,12 @@ def create_buildfile(
             w.rule(
                 "_make_ucsim_config",
                 f"$forge_command simulate --generate-conf --map $in",
+            )
+            w.rule(
+                "dce",
+                "mkdir -p $outdir/smol && "
+                + f"stm8dce -xf $${{DCE_EXCLUDES:='_'}} -o $outdir/smol $lib_path $in && "
+                + "touch $outdir/.smollified",
             )
 
         w.newline()

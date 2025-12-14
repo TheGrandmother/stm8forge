@@ -1,21 +1,20 @@
-import os
-import shutil
-import re
 import logging
+import os
+import re
+import shutil
 import subprocess
-
-
-import forge.tables as tables
-from forge.colors import Formatter
-from forge.openocd import create_openocd_file
-from forge.conf import load_conf, args, command, Config, Command
-from forge.ninjamaker import create_buildfile, Environment
-from forge.peripherals import parse_cube_file, Clk, cube_peripherals
-from forge.ccls import write_ccls_file
-from forge.ucsim import write_cfg_file, launch_sim
-from forge.testing.runner import TestRunner
 from typing import Set
 
+import forge.tables as tables
+from forge.args import args, command, load_conf
+from forge.ccls import write_ccls_file
+from forge.colors import Formatter
+from forge.conf import Command, Config
+from forge.ninjamaker import Environment, create_buildfile
+from forge.openocd import create_openocd_file
+from forge.peripherals import Clk, cube_peripherals, parse_cube_file
+from forge.testing.runner import TestRunner
+from forge.ucsim import launch_sim, write_cfg_file
 
 logger = logging.getLogger()
 
@@ -69,9 +68,7 @@ def get_flash_model(mcu):
     if len(matches) == 0:
         raise ForgeError(f"Can't find a neat flasher config for {mcu}")
     elif len(matches) > 1:
-        logger.warning(
-            f"{mcu} matches {matches} flash configurations. Picking one"
-        )
+        logger.warning(f"{mcu} matches {matches} flash configurations. Picking one")
 
     return matches[0]
 

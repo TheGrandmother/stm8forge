@@ -1,6 +1,13 @@
 #include "midi.h"
 #include <forge.h>
 
+
+void TEST_no_false_positives() {
+  test_start();
+  assert(0, "I fail intentionally");
+  test_complete();
+}
+
 void TEST_parse_byte() {
   test_start();
   assert_eq(parse_type_byte(0x90), M_NOTE_ON);

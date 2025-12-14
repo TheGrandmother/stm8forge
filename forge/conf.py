@@ -1,12 +1,10 @@
 import logging
-import tomllib
-from dataclasses import dataclass, field
-from typing import List, Dict, Any
-from enum import StrEnum
-import argparse
 import os
-import sys
+from dataclasses import dataclass, field
+from enum import StrEnum
+from typing import Any, Dict, List
 
+import tomllib
 
 logger = logging.getLogger()
 
@@ -64,9 +62,7 @@ class Config:
             or self.output_dir == "."
             or self.output_dir == "./"
         ):
-            raise Exception(
-                f"having '{self.output_dir}' as outdir is not a good idea"
-            )
+            raise Exception(f"having '{self.output_dir}' as outdir is not a good idea")
         if self.cube_file == None and self.mcu == None:
             raise Exception(f"You must either provide cube_file or the mcu")
         self.std_path = os.path.expanduser(self.std_path)
@@ -98,160 +94,11 @@ class Command(StrEnum):
     CLEAN = "clean"
 
 
-main_parser = argparse.ArgumentParser(
-    prog="forge",
-    description="Generates build files and stuff for SDCC based STM8 projects",
-)
-
-main_parser.add_argument(
-    "--verbose",
-    action="store_const",
-    dest="log_level",
-    const=0,
-    help="Debug output",
-)
-
-main_parser.add_argument(
-    "--clean",
-    dest="clean",
-    action="store_true",
-    help="Clean before command",
-)
-
-
-subparsers = main_parser.add_subparsers(help="subcommand help")
-
-subparsers.add_parser(
-    "clean",
-    help="clean project",
-)
-
-ucsim_parser = subparsers.add_parser(
-    "simulate",
-    help="simulates the project using μCsim",
-)
-
-flash_parser = subparsers.add_parser(
-    "flash",
-    help="Flash the microcontroller",
-)
-
-# Generate uccssim configuration.
-ucsim_parser.add_argument(
-    "--generate-conf",
-    dest="generate_conf",
-    action="store_true",
-    help=argparse.SUPPRESS,
-)
-
-
-# Map for sim generation.
-ucsim_parser.add_argument(
-    "--map",
-    type=str,
-    help=argparse.SUPPRESS,
-)
-
-
-# Map for sim generation.
-ucsim_parser.add_argument(
-    "--no-build",
-    dest="no_build",
-    action="store_true",
-    help="Omitts building",
-)
-
-
-ucsim_parser.add_argument(
-    "--start",
-    dest="start",
-    action="store_true",
-    help="Start execution (main) directly.",
-)
-
-ucsim_parser.add_argument(
-    "-i",
-    dest="interactive",
-    action="store_true",
-    help="Run the simulator in interactive mode",
-)
-
-
-parser = subparsers.add_parser(
-    "project",
-    help="Forges the project in accordance with the decrees of the configuration",
-)
-
-parser.add_argument(
-    "--debug",
-    metavar="d",
-    action="store_const",
-    const=True,
-    help="Build with dbg stuff",
-)
-
-test_parser = subparsers.add_parser(
-    "test",
-    help="launches the forge test framework",
-)
-
-
-test_parser.add_argument(
-    "--resolve",
-    dest="processed_files",
-    type=str,
-    nargs="+",
-    help=argparse.SUPPRESS,
-)
-
-
-if len(sys.argv) == 1:
-    print(main_parser.format_help())
-    quit(1)
-
-
-if "--" in sys.argv:
-    tail_args = sys.argv[sys.argv.index("--") + 1 :]
-    command_args = sys.argv[: sys.argv.index("--")]
-else:
-    command_args = sys.argv
-    tail_args = []
-
-args = main_parser.parse_args(command_args[1:])
-
-# this is horrible
-command = Command(
-    list(filter(lambda x: not x.startswith("-"), sys.argv[1:]))[0]
-)
-
-
-def override(target: object, option: str):
-    try:
-        if args.__getattribute__(option) is not None:
-            target.__setattr__(option, args.__getattribute__(option))
-    except AttributeError:
-        pass
-
-
-def load_conf(path: str = "./forge_conf.toml"):
-    try:
-        with open(path, "rb") as f:
-            data = tomllib.load(f)
-            ucsimConf = UcsimConfig(**data.get("ucsim", {}))
-            if command == Command.SIMULATE:
-                if args.start is not None:
-                    ucsimConf.args += ["-g"]
-                ucsimConf.args += tail_args
-                ucsimConf.interactive = args.interactive
-                override(ucsimConf, "interactive")
-            if "ucsim" in data:
-                del data["ucsim"]
-            conf = Config(ucsim=ucsimConf, **data)
-            if command == Command.TEST:
-                override(conf, "debug")
-            override(conf, "clean")
-            override(conf, "log_level")
-            return conf
-    except FileNotFoundError:
-        logger.error("No forge_conf.toml file found.")
-        quit(1)
+def load_conf(path: str = "./forge_conf.toml") -> Config:
+    with open(path, "rb") as f:
+        data = tomllib.load(f)
+        ucsimConf = UcsimConfig(**data.get("ucsim", {}))
+        if "ucsim" in data:
+            del data["ucsim"]
+        conf = Config(ucsim=ucsimConf, **data)
+        return conf

@@ -1,14 +1,15 @@
-import subprocess
-from forge.conf import Config
-from forge.colors import colorize
-from forge.testing.simparser import Sim, SimulatorException
-from forge.testing.test_setup import get_testcases
-from forge.ucsim import build_ucsim_command
 import json
-import random
-import socket
 import logging
 import os
+import random
+import socket
+import subprocess
+
+from forge.colors import colorize
+from forge.conf import Config
+from forge.testing.simparser import Sim, SimulatorException
+from forge.testing.test_setup import get_testcases
+from forge.ucsim import build_ucsim_command, launch_headless
 
 logger = logging.getLogger(__name__)
 
@@ -58,38 +59,12 @@ class TestRunner:
             command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
 
-        host = "localhost"
+        instance, port = launch_headless(self.config, build=False)
 
         status_addr = "_test_status"
 
-        logger.debug("Connecting to μCsim")
         with socket.socket() as s:
-            while True:
-                try:
-                    s.connect((host, port))
-                    break
-                except ConnectionRefusedError:
-                    pass
-
-            logger.debug("Connected to simulator")
-
-            while s.recv(1)[-1] != 0:
-                pass  # some non text is sent initially
-            sim = Sim(s)
-            sim.get_reply()  # Gets the license text
-
-            if sim.get_state().simulation != "stopped":
-                logger.error("Simulator not in stopped state")
-                quit(1)
-
-            logger.debug("Fetching initial data")
-            initial_data = sim.get_bytes(
-                self.sim_conf["initializer"], self.sim_conf["init_size"]
-            )
-            logger.debug(f"Got {len(initial_data)} bytes to init")
-
-            sim.set_bytes(self.sim_conf["initialized"], initial_data)
-            logger.debug(f"Initialization completed")
+            sim = Sim(s, self.config, port)
 
             sim.execute(f"b rom w {status_addr}")
             sim.go(test_function)
@@ -112,7 +87,7 @@ class TestRunner:
                 self.failures = self.failures + 1
                 logger.error(f"{test_function}: Some assertions failed")
                 try:
-                    with open(self.sim_conf["simif"]["out"]) as f:
+                    with open(sim.sim_conf["simif"]["out"]) as f:
                         content = f.read()
                         if content != "":
                             logger.info(f"{test_function}: dumping sif file content")
