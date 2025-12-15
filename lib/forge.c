@@ -19,6 +19,8 @@ enum test_status {
 
 volatile unsigned char sif;
 
+volatile unsigned char _interrupt_bp;
+
 volatile enum test_status test_status = 0;
 
 volatile uint32_t rng_state;
@@ -41,6 +43,27 @@ enum sif_command {
   SIFCM_READ		= 'r',	// read from input file
   SIFCM_WRITE		= 'w',	// write to output file
 };
+
+
+
+// Emulates an interrupt call
+// Simulation runner replaces addresses at runtime.
+void _INTER(void) {
+  __asm
+  SIM
+  PUSHW Y
+  PUSHW X
+  PUSH A
+  PUSH CC
+  CALLF 0xffffff
+  POP CC
+  POP A
+  POPW X
+  POPW Y
+  RIM
+  JP 0xffff
+  __endasm;
+}
 
 
 uint16_t rand(void)

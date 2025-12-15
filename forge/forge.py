@@ -247,7 +247,12 @@ def forge():
 
     match command:
         case Command.CLEAN:
-            subprocess.run(["ninja", "clean"])
+            if os.path.exists(config.ninja_file):
+                subprocess.run(["ninja", "clean"])
+                current_env = get_ninja_env(config)
+                os.unlink(config.ninja_file)
+                if current_env:
+                    forge_project(current_env, config)
         case Command.TEST:
             check_forge_env(Environment.SIM, config)
             runner = TestRunner(config)

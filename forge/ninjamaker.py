@@ -1,10 +1,8 @@
+import logging
 import os
 import sys
-
-import logging
-
-
 from enum import StrEnum
+
 import forge.ninja as ninja
 from forge.conf import Config
 from forge.testing.test_setup import show_func_defs
@@ -196,7 +194,7 @@ def create_buildfile(
             w.rule(
                 "dce",
                 "mkdir -p $outdir/smol && "
-                + f"stm8dce -xf $${{DCE_EXCLUDES:='_'}} -o $outdir/smol $lib_path $in && "
+                + f"stm8dce -xf __INTER $${{DCE_EXCLUDES:='_'}} -o $outdir/smol $lib_path $in && "
                 + "touch $outdir/.smollified",
             )
 

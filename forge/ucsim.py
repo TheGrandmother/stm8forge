@@ -156,20 +156,28 @@ def build_ucsim_command(options: List[str], config: Config):
         "-C",
         config.ucsim.file,
     ]
-    return arg + build_interfaces(config.ucsim.interfaces) + options + config.ucsim.args
+    return (
+        arg
+        + build_interfaces(config.ucsim.interfaces)
+        + ["-b", "-X", "16M"]
+        + options
+        + config.ucsim.args
+    )
 
 
 def launch_headless(config: Config, build=True) -> Tuple[subprocess.Popen[bytes], int]:
     if build:
-        subprocess.run(
+        build = subprocess.run(
             ["ninja", "build", config.ucsim.file],
-            stdout=subprocess.DEVNULL,
-            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
         )
+        if build.returncode != 0:
+            raise Exception(f"build failure")
 
     port = random.randint(10000, 60000)
 
-    command = build_ucsim_command(["-q", "-P", "-Z", str(port)], config)
+    command = build_ucsim_command(["-q", "-w", "-P", "-Z", str(port)], config)
 
     logger.debug(" ".join(command))
 

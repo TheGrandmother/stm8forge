@@ -74,12 +74,56 @@ class Sim:
 
         logger.debug("Initialization completed")
 
-    def get_bytes(self, start, count):
-        start = int(start, 16)
-        stop = start + count - 1
+    def execute_interrupt(self, handler: str):
+        # Interupt target is at addr + 7 and is a three byte addr
+        # return is at addr + 17
+        target_addr = self.symbol(handler)
+        return_addr = int(self.send("PC"))
+        base_addr = self.symbol("__INTER")
+        self.set_bytes(base_addr + 7, target_addr.to_bytes(3))
+        self.set_bytes(base_addr + 17, return_addr.to_bytes(2))
+        self.send("dc __INTER")
+        self.send(f"tbreak {hex(return_addr)}")
+        self.send("go __INTER")
+
+    def symbol(self, symbol: str) -> int:
+        return int(self.sim_conf["symbols"][symbol], 16)
+
+    def get_i8(self, addr: int | str, signed=False) -> int:
+        return int.from_bytes(self.get_bytes(addr, 1), signed=signed)
+
+    def get_i16(self, addr: int | str, signed=False) -> int:
+        return int.from_bytes(self.get_bytes(addr, 2), signed=signed)
+
+    def get_i32(self, addr: int | str, signed=False) -> int:
+        return int.from_bytes(self.get_bytes(addr, 4), signed=signed)
+
+    def get_i64(self, addr: int | str, signed=False) -> int:
+        return int.from_bytes(self.get_bytes(addr, 8), signed=signed)
+
+    def get_bytes(self, addr: int | str, count):
+        lit_addr = addr
+        if type(addr) == str:
+            if addr.startswith("0x"):
+                lit_addr = int(addr, 16)
+            elif addr[0].isdigit():
+                lit_addr = int(addr)
+            elif addr in self.sim_conf["symbols"]:
+                lit_addr = int(self.sim_conf["symbols"][addr], 16)
+            else:
+                resp = self.send(f"i v {addr}")
+                if resp.startswith(addr):
+                    lit_addr = int(resp.split("[")[1].split("]")[0], 16)
+                else:
+                    raise SimulatorException(
+                        f"Addr {addr} can not be resolved to a nice number"
+                    )
+
+        end = lit_addr + count
+
         self.s.sendall(
             bytes(
-                f"d /h {start} {stop} {count}\n",
+                f"d /h rom {lit_addr} {end} {count}\n",
                 "utf-8",
             )
         )
