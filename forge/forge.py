@@ -255,7 +255,7 @@ def forge():
                     forge_project(current_env, config)
         case Command.TEST:
             check_forge_env(Environment.SIM, config)
-            runner = TestRunner(config)
+            runner = TestRunner(config, selected_files=args.files)
             runner.run_all()
         case Command.FLASH:
             check_forge_env(Environment.FLASH, config)

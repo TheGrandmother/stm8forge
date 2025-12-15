@@ -1,9 +1,11 @@
-from pycparser import c_ast, CParser
-from forge.conf import Config
-from typing import List
-import re
-import os
 import logging
+import os
+import re
+from typing import List
+
+from pycparser import CParser, c_ast
+
+from forge.conf import Config
 
 logger = logging.getLogger(__name__)
 
@@ -37,18 +39,23 @@ def show_func_defs(filename):
             v.visit(ast)
             return v.names
         except Exception as e:
-            logger.warning(
-                f"Could not find test declarations in {filename}: {e}"
-            )
+            logger.warning(f"Could not find test declarations in {filename}: {e}")
             return []
 
 
-def get_testcases(config: Config):
-    sources = (
-        os.path.join(config.output_dir, "pre", file)
-        for file in os.listdir(os.path.join(config.output_dir, "pre"))
-        if file.endswith("_test.c")
-    )
+def get_testcases(config: Config, selected_files: List[str] = []):
+
+    if selected_files != []:
+        sources = (
+            os.path.join(config.output_dir, "pre", file) for file in selected_files
+        )
+    else:
+        sources = (
+            os.path.join(config.output_dir, "pre", file)
+            for file in os.listdir(os.path.join(config.output_dir, "pre"))
+            if file.endswith("_test.c")
+        )
+
     names = []
     for s in sources:
         names += show_func_defs(s)

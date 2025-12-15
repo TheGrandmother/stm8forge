@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 class TestRunner:
-    def __init__(self, config: Config):
+    def __init__(self, config: Config, selected_files=[]):
         self.config = config
         build = subprocess.run(
             ["ninja", "pre"],
@@ -25,7 +25,7 @@ class TestRunner:
             logger.error("Pre proccessing failed")
             quit(1)
 
-        entries = get_testcases(config)
+        entries = get_testcases(config, selected_files)
         if len(entries) == 1:
             logger.warning("No test functions were found in this project")
         self.functions = entries
@@ -63,6 +63,7 @@ class TestRunner:
 
         status_addr = "_test_status"
 
+        display_name = test_function.replace("_TEST_", "")
         with socket.socket() as s:
             sim = Sim(s, self.config, port)
 
@@ -79,24 +80,24 @@ class TestRunner:
                 if failed:
                     message = sim.get_string("_assert_message")
                     sim.set_bit(status_addr, 0, 0)
-                    logger.error(f"{test_function}: {message}")
+                    logger.error(f"{display_name}: {message}")
                 if not completed:
                     sim.go("")
 
             if case_failed:
                 self.failures = self.failures + 1
-                logger.error(f"{test_function}: Some assertions failed")
+                # logger.error(f"{display_name}: Some assertions failed")
                 try:
                     with open(sim.sim_conf["simif"]["out"]) as f:
                         content = f.read()
                         if content != "":
-                            logger.info(f"{test_function}: dumping sif file content")
-                            logger.warning(f"{test_function}:\n" + content)
+                            logger.info(f"{display_name}: dumping sif file content")
+                            logger.warning(f"{display_name}:\n" + content)
                 except FileNotFoundError:
                     pass
 
             else:
-                logger.info(f"{test_function}: {colorize('All tests passed')} ")
+                logger.info(f"{display_name}: {colorize('All tests passed')} ")
 
             sim.kill()
             while instance.poll() is None:

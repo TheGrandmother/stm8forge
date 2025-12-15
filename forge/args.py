@@ -108,10 +108,18 @@ test_parser = subparsers.add_parser(
 
 test_parser.add_argument(
     "--resolve",
-    dest="processed_files",
+    dest="files",
     type=str,
     nargs="+",
     help=argparse.SUPPRESS,
+)
+
+
+test_parser.add_argument(
+    "files",
+    type=str,
+    nargs="*",
+    help="Files to be tested, if omitted all *_test.c files will be ran",
 )
 
 
