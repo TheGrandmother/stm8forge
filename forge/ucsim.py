@@ -165,7 +165,9 @@ def build_ucsim_command(options: List[str], config: Config):
     )
 
 
-def launch_headless(config: Config, build=True) -> Tuple[subprocess.Popen[bytes], int]:
+def launch_headless(
+    config: Config, build=True, fixed_port=None
+) -> Tuple[subprocess.Popen[bytes], int]:
     if build:
         build = subprocess.run(
             ["ninja", "build", config.ucsim.file],
@@ -175,7 +177,7 @@ def launch_headless(config: Config, build=True) -> Tuple[subprocess.Popen[bytes]
         if build.returncode != 0:
             raise Exception(f"build failure")
 
-    port = random.randint(10000, 60000)
+    port = random.randint(10000, 60000) if fixed_port is None else fixed_port
 
     command = build_ucsim_command(["-q", "-w", "-P", "-Z", str(port)], config)
 

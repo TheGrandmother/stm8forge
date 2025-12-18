@@ -4,7 +4,7 @@ import re
 from dataclasses import dataclass
 from socket import socket
 from time import monotonic
-from typing import Literal
+from typing import List, Literal
 
 from forge.conf import Config
 
@@ -27,7 +27,19 @@ class State:
 
 
 class Sim:
-    def __init__(self, s: socket, config: Config, port: int):
+    def __init__(
+        self,
+        s: socket,
+        config: Config,
+        port: int,
+    ):
+
+        self.status_addr = "_test_status"
+
+        self.completed = False
+        self.case_failed = False
+        self.assert_triggered = False
+        self.test_running = False
 
         start = monotonic()
 
@@ -74,6 +86,18 @@ class Sim:
 
         logger.debug("Initialization completed")
 
+    def get_sim_state(self):
+        status = self.get_i8(self.status_addr)
+        self.failed = self.bit_test(status, 0)
+        self.assert_triggered = self.bit_test(status, 4)
+        self.completed = self.bit_test(status, 2)
+        self.test_running = self.bit_test(status, 3)
+
+    def configure_test_mem(self):
+        self.set_bit(self.status_addr, 3, 1)
+        self.execute(f"b rom w {self.status_addr}")
+        pass
+
     def execute_interrupt(self, handler: str):
         # Interupt target is at addr + 7 and is a three byte addr
         # return is at addr + 17
@@ -81,7 +105,7 @@ class Sim:
         return_addr = int(self.send("PC"))
         base_addr = self.symbol("__INTER")
         self.set_bytes(base_addr + 7, target_addr.to_bytes(3))
-        self.set_bytes(base_addr + 17, return_addr.to_bytes(2))
+        self.set_bytes(base_addr + 17, return_addr.to_bytes(3))
         self.send("dc __INTER")
         self.send(f"tbreak {hex(return_addr)}")
         self.send("go __INTER")
@@ -100,6 +124,9 @@ class Sim:
 
     def get_i64(self, addr: int | str, signed=False) -> int:
         return int.from_bytes(self.get_bytes(addr, 8), signed=signed)
+
+    def bit_test(self, byte: int, bit: int) -> bool:
+        return bool(byte & (1 << bit))
 
     def get_bytes(self, addr: int | str, count):
         lit_addr = addr

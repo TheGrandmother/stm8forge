@@ -18,6 +18,11 @@ class FuncCallVisitor(c_ast.NodeVisitor):
 
     def visit_FuncDef(self, node):
         if node.decl.name.startswith("TEST"):
+            if len("_" + node.decl.name) > 32:
+                raise ValueError(
+                    f"Test function name length {"_" + node.decl.name} exceedes 31 characters"
+                )
+
             self.names.append("_" + node.decl.name)
 
 
@@ -39,7 +44,7 @@ def show_func_defs(filename):
             v.visit(ast)
             return v.names
         except Exception as e:
-            logger.warning(f"Could not find test declarations in {filename}: {e}")
+            logger.warning(f"Could not find test declarations in {filename}:\n {e}")
             return []
 
 

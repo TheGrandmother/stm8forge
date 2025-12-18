@@ -61,32 +61,24 @@ class TestRunner:
 
         instance, port = launch_headless(self.config, build=False)
 
-        status_addr = "_test_status"
-
         display_name = test_function.replace("_TEST_", "")
         with socket.socket() as s:
             sim = Sim(s, self.config, port)
 
-            sim.execute(f"b rom w {status_addr}")
+            sim.execute(f"b rom w {sim.status_addr}")
             sim.go(test_function)
-            completed = False
-            case_failed = False
-            assert_triggered = False
-            while not completed:
-                failed = sim.get_bit(status_addr, 0)
-                case_failed = case_failed or failed
-                assert_triggered = sim.get_bit(status_addr, 4)
-                completed = sim.get_bit(status_addr, 2) or assert_triggered
-                if failed:
+            while not sim.completed:
+                sim.get_sim_state()
+                completed = sim.completed or sim.assert_triggered
+                if sim.failed:
                     message = sim.get_string("_assert_message")
-                    sim.set_bit(status_addr, 0, 0)
+                    sim.set_bit(sim.status_addr, 0, 0)
                     logger.error(f"{display_name}: {message}")
+                    break
                 if not completed:
-                    sim.go("")
+                    sim.send("go")
 
-            if case_failed:
-                self.failures = self.failures + 1
-                # logger.error(f"{display_name}: Some assertions failed")
+            if sim.failed:
                 try:
                     with open(sim.sim_conf["simif"]["out"]) as f:
                         content = f.read()
@@ -95,7 +87,6 @@ class TestRunner:
                             logger.warning(f"{display_name}:\n" + content)
                 except FileNotFoundError:
                     pass
-
             else:
                 logger.info(f"{display_name}: {colorize('All tests passed')} ")
 

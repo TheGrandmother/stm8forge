@@ -1,6 +1,6 @@
-from enum import Enum
-import re
 import logging
+import re
+from enum import Enum
 
 logger = logging.getLogger()
 
@@ -92,6 +92,11 @@ class Flash(Dependency):
         self.sources = ["stm8s_flash.c"]
 
 
+class Wwdg(Dependency):
+    def __init__(self):
+        self.sources = ["stm8s_wwdg.c"]
+
+
 # These wild bois are missing
 # stm8s_awu.c
 # stm8s_clk.c
@@ -126,7 +131,8 @@ cube_peripherals = {
     "I2C1": I2C(),
     "SPI1": Spi(),
     "FLASH": Flash(),
-    "EXTI": Exti(),  # This should be passed as a real dependency
+    "EXTI": Exti(),
+    "WWDG": Wwdg(),
 }
 
 
@@ -162,8 +168,7 @@ def parse_cube_file(file):
                     used_peripherals.add(perp)
                 elif name != "SYS":
                     logger.warning(
-                        "Fyi, Forge does not recognize "
-                        + f"{name} as a peripheral"
+                        "Fyi, Forge does not recognize " + f"{name} as a peripheral"
                     )
             if state == State.PINS:
                 [_, _, functions, *_] = re.split(r"\s+", line)

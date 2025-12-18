@@ -55,13 +55,13 @@ void _INTER(void) {
   PUSHW X
   PUSH A
   PUSH CC
-  CALLF 0xffffff
+  CALLF 0x000000
   POP CC
   POP A
   POPW X
   POPW Y
   RIM
-  JP 0xffff
+  JPF 0x000000
   __endasm;
 }
 
