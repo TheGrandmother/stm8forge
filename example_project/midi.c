@@ -22,7 +22,7 @@ unsigned char get_length(message_type t) {
   case M_CH_AFTERTOUCH:
     return 2;
   case M_PITCH_BEND:
-    return 2;
+    return 3;
   case M_MEASURE_END:
     return 2;
   default:
