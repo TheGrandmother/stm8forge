@@ -1,6 +1,6 @@
 # stm8forge
 
-This is very WIP and not particularly usable by anyone but me.
+This is very WIP and not particularly usable by anyone but me. Things are unstable and flaky.
 
 This project is fairly cringe.
 I do not have the skills to deliver this much features with any reasonable quality.
@@ -47,7 +47,7 @@ void TEST_something() {
   test_start();
 
   assert_eq(parse_type_byte(0x80), NOTE_ON);
-  assert_eq(parse_type_byte(0xE2), PROGRAM_CHANGE); // This is wrong intentionally
+  assert_eq(parse_type_byte(0xE2), PROGRAM_CHANGE); // Fails
   assert_eq(parse_type_byte(0xF2), INVALID);
   assert_eq(parse_type_byte(0xF0), SYSEX_START);
 

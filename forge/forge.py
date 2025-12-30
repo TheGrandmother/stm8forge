@@ -58,6 +58,15 @@ def get_sources(src):
     return sources
 
 
+def get_family(mcu: str):
+    if mcu.startswith("stm8a"):
+        return mcu[:9]
+    if mcu.startswith("stm8s") or mcu.startswith("stm8l"):
+        return mcu[:8]
+
+    raise ValueError(f"{mcu} is of inknown family")
+
+
 def get_flash_model(mcu):
     mcu = mcu.lower()
     matches = []
@@ -224,8 +233,39 @@ def check_forge_env(desired: Environment, config: Config):
         forge_project(desired, config)
 
 
-def flash():
-    subprocess.run(["ninja", "flash"])
+def flash(conf: Config):
+    p = subprocess.Popen(
+        ["ninja", "flash"], shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    assert p.stdout is not None
+    while p.poll() is None:
+        out = p.stdout.readline().decode()
+        if (
+            out.startswith("Bytes written: ")
+            and conf.mcu
+            and get_family(conf.mcu) in tables.code_sizes
+        ):
+            byte_count = int(out.split(": ")[1])
+            availiable = tables.code_sizes[get_family(conf.mcu)]
+            remaining = availiable - byte_count
+            percentage = (remaining / availiable) * 100
+            if percentage < 10:
+                logger.warning(
+                    f"Only {remaining} bytes ({round(percentage, 1)}%) remaining!!"
+                )
+            else:
+                logger.info(f"{remaining} bytes ({round(percentage, 1)}%) remaining")
+        elif out.strip() != "":
+            logger.info(out.replace("\n", ""))
+
+    if p.poll() != 0:
+        if p.stderr is not None:
+            err = p.stderr.readline().decode()
+            if err.strip() != "":
+                logger.error(err.replace("\n", ""))
+        logger.error("Failed to flash")
+
+    quit(p.poll())
 
 
 def forge():
@@ -259,7 +299,7 @@ def forge():
             runner.run_all()
         case Command.FLASH:
             check_forge_env(Environment.FLASH, config)
-            flash()
+            flash(config)
         case Command.SIMULATE:
             check_forge_env(Environment.SIM, config)
             if args.generate_conf:

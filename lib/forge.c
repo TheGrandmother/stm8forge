@@ -108,7 +108,6 @@ void sif_write(char *s) {
   }
 }
 
-
 void _assert(char condition, char* message, int line, const char* name) {
 
   if (!condition) {
@@ -127,10 +126,15 @@ void _assert(char condition, char* message, int line, const char* name) {
   }
 }
 
+void faff_maker(char* buf, const char* operator, char* lhs_text, char* rhs_text, unsigned int lhs, unsigned int rhs) {
+  sprintf(buf, "%s %s %s :: (0x%x %s 0x%x)", lhs_text, operator, rhs_text, (unsigned int)lhs, operator, (unsigned int)rhs);
+}
+
+
 void _assert_eq(int lhs, char* lhs_text, int rhs, char* rhs_text, int line, const char* name) {
   char buf[128];
   if (lhs !=  rhs) {
-    sprintf(buf, "%s == %s :: (0x%x == 0x%x)", lhs_text, rhs_text, (unsigned int)lhs, (unsigned int)rhs);
+    faff_maker(buf, "==", lhs_text, rhs_text, (unsigned int)lhs, (unsigned int)rhs);
     _test_assert(0, buf, line, name);
   }
 }
@@ -138,7 +142,7 @@ void _assert_eq(int lhs, char* lhs_text, int rhs, char* rhs_text, int line, cons
 void _assert_gt(int lhs, char* lhs_text, int rhs, char* rhs_text, int line, const char* name) {
   char buf[128];
   if (!(lhs > rhs)) {
-    sprintf(buf, "%s > %s :: (0x%x > 0x%x)", lhs_text, rhs_text, (unsigned int)lhs, (unsigned int)rhs);
+    faff_maker(buf, ">", lhs_text, rhs_text, (unsigned int)lhs, (unsigned int)rhs);
     _test_assert(0, buf, line, name);
   }
 }
@@ -147,7 +151,7 @@ void _assert_gt(int lhs, char* lhs_text, int rhs, char* rhs_text, int line, cons
 void _assert_gte(int lhs, char* lhs_text, int rhs, char* rhs_text, int line, const char* name) {
   char buf[128];
   if (!(lhs >= rhs)) {
-    sprintf(buf, "%s >= %s :: (0x%x >= 0x%x)", lhs_text, rhs_text, (unsigned int)lhs, (unsigned int)rhs);
+    faff_maker(buf, ">=", lhs_text, rhs_text, (unsigned int)lhs, (unsigned int)rhs);
     _test_assert(0, buf, line, name);
   }
 }
@@ -155,7 +159,7 @@ void _assert_gte(int lhs, char* lhs_text, int rhs, char* rhs_text, int line, con
 void _assert_lt(int lhs, char* lhs_text, int rhs, char* rhs_text, int line, const char* name) {
   char buf[128];
   if (!(lhs < rhs)) {
-    sprintf(buf, "%s < %s :: (0x%x < 0x%x)", lhs_text, rhs_text, (unsigned int)lhs, (unsigned int)rhs);
+    faff_maker(buf, "<", lhs_text, rhs_text, (unsigned int)lhs, (unsigned int)rhs);
     _test_assert(0, buf, line, name);
   }
 }
@@ -164,7 +168,7 @@ void _assert_lt(int lhs, char* lhs_text, int rhs, char* rhs_text, int line, cons
 void _assert_lte(int lhs, char* lhs_text, int rhs, char* rhs_text, int line, const char* name) {
   char buf[128];
   if (!(lhs <= rhs)) {
-    sprintf(buf, "%s <= %s :: (0x%x <= 0x%x)", lhs_text, rhs_text, (unsigned int)lhs, (unsigned int)rhs);
+    faff_maker(buf, "<=", lhs_text, rhs_text, (unsigned int)lhs, (unsigned int)rhs);
     _test_assert(0, buf, line, name);
   }
 }

@@ -14,6 +14,9 @@ supported_mcus = {
     "STM8S003",
 }
 
+
+code_sizes = {"stm8s003": 0x9FFF - 0x8000, "stm8s001": 0x9FFF - 0x8000}
+
 openocd_configs = [
     "stm8s003",
     "stm8s103",

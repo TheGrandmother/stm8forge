@@ -84,7 +84,7 @@ class TestRunner:
                         content = f.read()
                         if content != "":
                             logger.info(f"{display_name}: dumping sif file content")
-                            logger.warning(f"{display_name}:\n" + content)
+                            logger.warning(content)
                 except FileNotFoundError:
                     pass
             else:
