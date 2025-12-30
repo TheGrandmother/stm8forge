@@ -14,6 +14,7 @@ main_parser = argparse.ArgumentParser(
 )
 
 main_parser.add_argument(
+    "-v",
     "--verbose",
     action="store_const",
     dest="log_level",

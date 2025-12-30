@@ -256,7 +256,12 @@ def flash(conf: Config):
             else:
                 logger.info(f"{remaining} bytes ({round(percentage, 1)}%) remaining")
         elif out.strip() != "":
-            logger.info(out.replace("\n", ""))
+            if conf.log_level < logging.INFO:
+                logger.info(out.replace("\n", ""))
+            else:
+                line = out.replace("\n", "")
+                if re.match(r"\[\d+\/\d+\]", line):
+                    logger.info(f"{line[:80]}{'...' if len(line) > 80 else ''}")
 
     if p.poll() != 0:
         if p.stderr is not None:
