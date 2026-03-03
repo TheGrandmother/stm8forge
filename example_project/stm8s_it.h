@@ -99,7 +99,7 @@
 #if defined(STM8S207) || defined(STM8S007) || defined(STM8S208) || defined (STM8AF52Ax) || defined (STM8AF62Ax)
  INTERRUPT_HANDLER(ADC2_IRQHandler, 22);                  /* ADC2 */
 #else /* (STM8S105) || (STM8S103) || (STM8S903) || (STM8AF622x) */
-// INTERRUPT_HANDLER(ADC1_IRQHandler, 22);                  /* ADC1 */
+ INTERRUPT_HANDLER(ADC1_IRQHandler, 22);                  /* ADC1 */
 #endif /* (STM8S207) || (STM8S208) || (STM8AF62Ax) || (STM8AF52Ax) */
 
 #if defined(STM8S903) || defined(STM8AF622x)
