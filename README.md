@@ -1,3 +1,7 @@
+# :warning: THIS REPO IS ARCHIVED :warning: 
+
+**[PERMANENTLY MOVED TO CODEBERG](https://codeberg.org/symbolic-circuits/stm8forge)**
+
 # stm8forge
 
 This is very WIP and not particularly usable by anyone but me. Things are unstable and flaky.
